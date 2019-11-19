@@ -77,7 +77,9 @@ export async function getFloors() {
   for (let i = 0; i < floors.length; ++i) {
     const floor = floors[i];
     const floorSvgUrl = floorSvgUrls[i];
-    floor.image.data = new Uint8Array((await axios.get(floorSvgUrl, { responseType: 'arraybuffer'})).data);
+    floor.image.data = new Uint8Array(
+      (await axios.get(floorSvgUrl, { responseType: 'arraybuffer'})).data
+    );
   }
 
   return floors;
