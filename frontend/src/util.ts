@@ -1,7 +1,7 @@
 
 import * as pako from 'pako';
 
-export function rawCompressedSvgToSvgElement(data: ArrayBuffer | Uint8Array) {
+export function rawCompressedSvgToSvgElement(data: ArrayBuffer | Uint8Array): SVGImageElement {
   if (data instanceof ArrayBuffer) {
     data = new Uint8Array(data);
   }
@@ -11,5 +11,5 @@ export function rawCompressedSvgToSvgElement(data: ArrayBuffer | Uint8Array) {
 
   const svgDoc: XMLDocument = (new DOMParser()).parseFromString(inflatedText, 'image/svg+xml');
 
-  return <any>svgDoc.documentElement;
+  return svgDoc.documentElement as any;
 }
