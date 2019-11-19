@@ -1,14 +1,14 @@
 <template>
   <LMap
-    style="height: 600px; width: 100vw"
+    id="map"
     ref="scheduleMap"
     :options="MAP_OPTIONS"
     :crs="MAP_CRS"
   >
-  <LControlAttribution
-    prefix="OSRC-SG"
-    position="bottomright"
-  />
+    <LControlAttribution
+      prefix="OSRC-SG"
+      position="bottomright"
+    />
   </LMap>
 </template>
 
@@ -130,3 +130,12 @@ export default class MapComponent extends Vue {
   }
 }
 </script>
+
+<style lang="scss">
+#map {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+</style>
