@@ -9,6 +9,11 @@
       prefix="OSRC-SG"
       position="bottomright"
     />
+    <LControl id="server-time-control" position="topright">
+      <div id="server-time" title="Server Time">
+        {{ currentDateTime.toLocaleString() }}
+      </div>
+    </LControl>
   </LMap>
 </template>
 
@@ -18,7 +23,12 @@ import * as L from 'leaflet';
 import axios from 'axios';
 import produce from 'immer';
 import { Component, Vue } from 'vue-property-decorator';
-import { LMap, LControlAttribution, LControlLayers } from 'vue2-leaflet';
+import {
+  LControl,
+  LControlAttribution,
+  LControlLayers,
+  LMap,
+} from 'vue2-leaflet';
 
 import { getFloors } from '../mock'
 import { rawCompressedSvgToSvgElement } from '../util';
@@ -26,9 +36,10 @@ import { IFloor } from '../models/Floor';
 
 @Component({
   components: {
+    LControl,
     LControlAttribution,
-    LMap,
     LControlLayers,
+    LMap,
   },
 })
 export default class MapComponent extends Vue {
@@ -38,6 +49,8 @@ export default class MapComponent extends Vue {
     attributionControl: false,
   };
   public readonly MAP_CRS = L.CRS.Simple;
+  public currentDateTime = new Date();
+
 
   private readonly IMAGE_SCALE = 0.0125;
   private readonly MAP_LAYER_CONTROL = new L.Control.Layers();
@@ -50,10 +63,17 @@ export default class MapComponent extends Vue {
   private map!: L.Map;
 
   public mounted() {
+    this.startClock();
     this.$nextTick(async () => {
       this.initializeMap((this.$refs.scheduleMap as any).mapObject as L.Map);
       await this.updateMap();
     });
+  }
+
+  private startClock() {
+    setInterval(() => {
+      this.currentDateTime = new Date();
+    }, 1000)
   }
 
   private initializeMap(mapObject: L.Map) {
@@ -134,5 +154,24 @@ export default class MapComponent extends Vue {
   width: 100%;
   margin: 0;
   padding: 0;
+}
+
+#server-time-control {
+  float: left;
+  background: #fff;
+  border-radius: 5px 5px 5px 5px;
+  background-clip: padding-box;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  height: 44px;
+  vertical-align: center;
+}
+
+#server-time-control + div.leaflet-control {
+  clear: none;
+}
+
+#server-time {
+  padding: 3px 5px 0 5px;
+  font-size: 2em;
 }
 </style>
