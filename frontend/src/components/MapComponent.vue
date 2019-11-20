@@ -11,7 +11,7 @@
     />
     <LControl id="server-time-control" position="topright">
       <div id="server-time" title="Server Time">
-        {{ currentDateTime.toLocaleString() }}
+        {{ dateTimeString }}
       </div>
     </LControl>
   </LMap>
@@ -49,11 +49,11 @@ export default class MapComponent extends Vue {
     attributionControl: false,
   };
   public readonly MAP_CRS = L.CRS.Simple;
-  public currentDateTime = new Date();
-
+  public dateTimeString = '';
 
   private readonly IMAGE_SCALE = 0.0125;
   private readonly MAP_LAYER_CONTROL = new L.Control.Layers();
+  private readonly CURRENT_DATE = new Date();
 
   // Initialized in mounted()
   private currentFloor!: string;
@@ -62,17 +62,24 @@ export default class MapComponent extends Vue {
   private maxBounds!: L.LatLngBounds;
   private map!: L.Map;
 
-  public mounted() {
+  public async created() {
     this.startClock();
-    this.$nextTick(async () => {
-      this.initializeMap((this.$refs.scheduleMap as any).mapObject as L.Map);
-      await this.updateMap();
-    });
+  }
+
+  public async mounted() {
+    await this.$nextTick();
+    this.initializeMap((this.$refs.scheduleMap as any).mapObject as L.Map);
+    await this.updateMap();
   }
 
   private startClock() {
+    if (this.dateTimeString.length <= 0) {
+      this.dateTimeString = this.CURRENT_DATE.toLocaleString();
+    }
+
     setInterval(() => {
-      this.currentDateTime = new Date();
+      this.CURRENT_DATE.setSeconds(this.CURRENT_DATE.getSeconds() + 1);
+      this.dateTimeString = this.CURRENT_DATE.toLocaleString();
     }, 1000)
   }
 
