@@ -41,7 +41,6 @@ export default class MapComponent extends Vue {
 
   private readonly IMAGE_SCALE = 0.0125;
   private readonly MAP_LAYER_CONTROL = new L.Control.Layers();
-  private _buildingMapInitialized = false;
 
   // Initialized in mounted()
   private currentFloor!: string;
@@ -52,12 +51,12 @@ export default class MapComponent extends Vue {
 
   public mounted() {
     this.$nextTick(async () => {
-      this._initializeMap((this.$refs.scheduleMap as any).mapObject as L.Map);
-      await this._updateMap();
+      this.initializeMap((this.$refs.scheduleMap as any).mapObject as L.Map);
+      await this.updateMap();
     });
   }
 
-  private _initializeMap(mapObject: L.Map) {
+  private initializeMap(mapObject: L.Map) {
     if (this.map === mapObject) {
       return;
     }
@@ -65,15 +64,13 @@ export default class MapComponent extends Vue {
     this.map = mapObject;
     this.map.addControl(this.MAP_LAYER_CONTROL);
 
-    if (!this._buildingMapInitialized) {
-      this.map.on(
-        'baselayerchange',
-        this._onMapBaseLayerChange,
-      )
-    }
+    this.map.on(
+      'baselayerchange',
+      this.onMapBaseLayerChange,
+    )
   }
 
-  private async _updateMap() {
+  private async updateMap() {
     this.maxBounds = new L.LatLngBounds([0, 0], [0, 0]);
     this.floors = await produce(this.floors, async (draft) => draft = await getFloors());
 
@@ -125,7 +122,7 @@ export default class MapComponent extends Vue {
     // this.$refs.scheduleMap.mapObject.LEAFLET_METHOD
   }
 
-  private _onMapBaseLayerChange(event: L.LayersControlEvent) {
+  private onMapBaseLayerChange(event: L.LayersControlEvent) {
     this.currentFloor = event.name;
   }
 }
