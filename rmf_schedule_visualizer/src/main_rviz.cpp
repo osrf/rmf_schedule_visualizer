@@ -73,6 +73,8 @@ private:
 
     // TODO store a cache of trajectories to prevent frequent access
     // update chache whenever mirror manager updates 
+    // maintain unordered map of id and trajectory
+
     RequestParam param;
     param.map_name = _map_name;
     param.start_time = std::chrono::steady_clock::now();
@@ -85,20 +87,19 @@ private:
       // 1) Current position 
       // 2) Path until param.finish_time
 
-      // Unique id for each trajectory marker 
+      // Temporary count used as id for each trajectory marker
+      // id will be sourced from unordered map
+      int count = 0;
+      for(auto it = _trajectories.begin(); it != _trajectories.end(); it++)
+      {
+        ++count;
+        auto location_marker = make_location_marker(*it, param, count);
+        marker_array.markers.push_back(location_marker);
+      }
+      RCLCPP_INFO(this->get_logger(),
+          "Publishinb marker array of size: " + std::to_string(marker_array.markers.size()));
+       _marker_array_pub->publish(marker_array);
     }
-
-    // Marker marker_x;
-    // Marker marker_y;
-    // marker_x = make_marker(true, 1);
-    // marker_array.markers.push_back(marker_x);
-    // if(_count<10)
-    // {
-    //   marker_y = make_marker(false, 2);
-    //   marker_array.markers.push_back(marker_y);
-    // }
-    // _marker_array_pub->publish(marker_array);
-    // _count++;
 
   }
 
@@ -164,7 +165,7 @@ private:
     return marker_msg;
   }
 
-  double _rate = 1;
+  double _rate;
   rclcpp::TimerBase::SharedPtr _timer;
   rclcpp::Publisher<Marker>::SharedPtr _marker_pub;
   rclcpp::Publisher<MarkerArray>::SharedPtr _marker_array_pub;

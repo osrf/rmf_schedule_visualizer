@@ -90,7 +90,7 @@ public:
     t.insert(
         _finish_time,
         profile,
-        _position,
+        Eigen::Vector3d{30, 0, 0},
         _velocity);
 
     SubmitTrajectory::Request request_msg;
@@ -170,7 +170,7 @@ int main(int argc, char* argv[])
 
   std::string duration_string;
   get_arg(args, "-d", duration_string, "duration(s)",false);
-  rmf_traffic::Duration duration = 400s;
+  rmf_traffic::Duration duration = 60s;
 
 
   Eigen::Vector3d position{0,0,0};
