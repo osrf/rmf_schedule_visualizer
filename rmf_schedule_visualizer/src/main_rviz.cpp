@@ -33,7 +33,8 @@ public:
   RvizNode(std::string node_name,
       double rate = 1)
   : Node(node_name),
-    _rate(rate)
+    _rate(rate),
+    _count(0)
   {
     _marker_pub = this->create_publisher<Marker>("test_marker", rclcpp::SystemDefaultsQoS());
     _marker_array_pub = this->create_publisher<MarkerArray>("test_marker_array", rclcpp::SystemDefaultsQoS());
@@ -65,7 +66,7 @@ private:
     marker_x = make_marker(true, 1);
     marker_array.markers.push_back(marker_x);
 
-    if(_count<5)
+    if(_count<10)
     {
       marker_y = make_marker(false, 2);
       marker_array.markers.push_back(marker_y);
