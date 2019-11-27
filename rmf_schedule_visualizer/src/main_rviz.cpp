@@ -76,7 +76,7 @@ private:
     param.start_time = std::chrono::steady_clock::now();
     param.finish_time = param.start_time + 120s;
     _trajectories = _visualizer_data_node.get_trajectories(param);
-
+    std::cout<<"Trajectory Size: "<< _trajectories.size()<<std::endl;
     // Marker marker_x;
     // Marker marker_y;
     // marker_x = make_marker(true, 1);
