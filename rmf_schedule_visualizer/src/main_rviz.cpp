@@ -51,9 +51,8 @@ int main(int argc, char* argv[])
   const std::vector<std::string> args =
       rclcpp::init_and_remove_ros_arguments(argc, argv);
 
-  std::string node_name;
-  if(!get_arg(args, "-n", node_name, "node name"))
-    return 1;
+  std::string node_name = "viz";
+  get_arg(args, "-n", node_name, "node name", false);
 
   std::string port_string;
   get_arg(args, "-p", port_string, "port",false);
@@ -80,17 +79,21 @@ int main(int argc, char* argv[])
   //   std::cerr << "Failed to initialize the Server" << std::endl;
   //   return 1;
   // }
+
+
+  rclcpp::executors::MultiThreadedExecutor executor;
+  executor.add_node(visualizer_data_node);
+
   
   RCLCPP_INFO(
         visualizer_data_node->get_logger(),
         "Websocket server started on port: " + std::to_string(port));
 
-  rclcpp::spin(visualizer_data_node);
-  
-
+  executor.spin();
   RCLCPP_INFO(
         visualizer_data_node->get_logger(),
         "Closing down");
 
   rclcpp::shutdown();
+  return 0;
 }
