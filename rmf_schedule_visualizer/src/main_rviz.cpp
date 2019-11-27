@@ -39,12 +39,14 @@ public:
   RvizNode(
       std::string node_name,
       rmf_schedule_visualizer::VisualizerDataNode& visualizer_data_node,
-      double rate = 1)
+      double rate = 1,
+      std::string frame_id = "/map")
   : Node(node_name),
     _visualizer_data_node(visualizer_data_node),
     _rate(rate),
     _count(0),
-    _map_name("level1")
+    _map_name("level1"),
+    _frame_id(frame_id)
   {
     _marker_pub = this->create_publisher<Marker>("test_marker", rclcpp::SystemDefaultsQoS());
     _marker_array_pub = this->create_publisher<MarkerArray>("test_marker_array", rclcpp::SystemDefaultsQoS());
@@ -76,7 +78,16 @@ private:
     param.start_time = std::chrono::steady_clock::now();
     param.finish_time = param.start_time + 120s;
     _trajectories = _visualizer_data_node.get_trajectories(param);
-    std::cout<<"Trajectory Size: "<< _trajectories.size()<<std::endl;
+
+    if (_trajectories.size() > 0)
+    {
+      // for each trajectory create two markers
+      // 1) Current position 
+      // 2) Path until param.finish_time
+
+      // Unique id for each trajectory marker 
+    }
+
     // Marker marker_x;
     // Marker marker_y;
     // marker_x = make_marker(true, 1);
@@ -91,59 +102,66 @@ private:
 
   }
 
-  visualization_msgs::msg::Marker make_marker(bool x, int id)
+  visualization_msgs::msg::Marker make_location_marker(
+        rmf_traffic::Trajectory& trajectory,
+        const RequestParam param,
+        int id)
   {
-      Marker marker_msg;
+    // TODO Link the color, shape and size of marker to profile of trajectory
 
-      marker_msg.header.frame_id = "/map";
-      auto start_time = std::chrono::steady_clock::now();
-      marker_msg.header.stamp = convert_time(start_time);
-      marker_msg.ns = "basic_shapes";
-      marker_msg.id = id;
-      marker_msg.type = marker_msg.SPHERE;
-      marker_msg.action = marker_msg.ADD;
+    Marker marker_msg;
+    const double radius = static_cast<const rmf_traffic::geometry::Circle&>(
+          trajectory.begin()->get_profile()->get_shape()->source()).get_radius();
+    std::cout<<"Radius: "<<radius<<std::endl;
 
-      // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
-       marker_msg.pose.position.x = 0;
-       marker_msg.pose.position.y = 0;
-      if(x)
-        marker_msg.pose.position.x = 0 + (_count/2.0);
-      else
-        marker_msg.pose.position.y = 0 +(_count/2.0);
-      marker_msg.pose.position.z = 0;
-      marker_msg.pose.orientation.x = 0.0;
-      marker_msg.pose.orientation.y = 0.0;
-      marker_msg.pose.orientation.z = 0.0;
-      marker_msg.pose.orientation.w = 1.0;
+    marker_msg.header.frame_id = _frame_id; // map
+    auto start_time = param.start_time;
+    marker_msg.header.stamp = convert_time(start_time);
+    marker_msg.ns = "basic_shapes";
+    marker_msg.id = id;
+    marker_msg.type = marker_msg.SPHERE;
+    marker_msg.action = marker_msg.ADD;
 
-      // Set the scale of the marker -- 1x1x1 here means 1m on a side
-      marker_msg.scale.x = 1.0;
-      marker_msg.scale.y = 1.0;
-      marker_msg.scale.z = 1.0;
+    // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
+    auto motion = trajectory.find(param.start_time)->compute_motion();
+    Eigen::Vector3d position =  motion->compute_position(param.start_time);
+    marker_msg.pose.position.x = position[0];
+    marker_msg.pose.position.y = position[1];
+    marker_msg.pose.position.z = 0;
+    // TODO compute quaternion from yaw angle 
+    marker_msg.pose.orientation.x = 0.0;
+    marker_msg.pose.orientation.y = 0.0;
+    marker_msg.pose.orientation.z = 0.0;
+    marker_msg.pose.orientation.w = 1.0;
 
-      // Set the color -- be sure to set alpha to something non-zero!
-      marker_msg.color.r = 0.0f;
-      marker_msg.color.g = 1.0f;
-      marker_msg.color.b = 0.0f;
-      marker_msg.color.a = 1.0;
-      
-      builtin_interfaces::msg::Duration duration;
-      duration.sec = 0.01;
-      duration.nanosec = 0;
-      marker_msg.lifetime = duration;
+    // Set the scale of the marker -- 1x1x1 here means 1m on a side
+    marker_msg.scale.x = 1.0;
+    marker_msg.scale.y = 1.0;
+    marker_msg.scale.z = 1.0;
 
-      Point point;
-      point.x = 0;
-      point.y = 0;
-      point.z = 0;
-      marker_msg.points.push_back(point);
+    // Set the color -- be sure to set alpha to something non-zero!
+    marker_msg.color.r = 0.0f;
+    marker_msg.color.g = 1.0f;
+    marker_msg.color.b = 0.0f;
+    marker_msg.color.a = 1.0;
+    
+    builtin_interfaces::msg::Duration duration;
+    duration.sec = 0.01;
+    duration.nanosec = 0;
+    marker_msg.lifetime = duration;
 
-      point.x = 0;
-      point.y = 1;
-      point.z = 0;
-      marker_msg.points.push_back(point);
+    Point point;
+    point.x = 0;
+    point.y = 0;
+    point.z = 0;
+    marker_msg.points.push_back(point);
 
-      return marker_msg;
+    point.x = 0;
+    point.y = 1;
+    point.z = 0;
+    marker_msg.points.push_back(point);
+
+    return marker_msg;
   }
 
   double _rate = 1;
@@ -154,6 +172,7 @@ private:
   std::string _map_name;
   int _count;
   std::vector<rmf_traffic::Trajectory> _trajectories;
+  std::string _frame_id;
 
 };
 
