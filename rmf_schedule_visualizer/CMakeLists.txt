@@ -61,6 +61,10 @@ target_link_libraries(rviz2
     ${rclcpp_LIBRARIES}
     ${visualization_msgs_LIBRARIES}
     ${geometry_msgs_LIBRARIES}
+    Boost::system
+    Boost::date_time
+    Boost::regex
+    Boost::random
 )
 
 target_include_directories(rviz2
