@@ -30,9 +30,12 @@ public:
   using MarkerArray = visualization_msgs::msg::MarkerArray;
   using Point = geometry_msgs::msg::Point;
 
-  RvizNode(std::string node_name,
+  RvizNode(
+      std::string node_name,
+      rmf_schedule_visualizer::VisualizerDataNode& visualizer_data_node,
       double rate = 1)
   : Node(node_name),
+    _visualizer_data_node(visualizer_data_node),
     _rate(rate),
     _count(0)
   {
@@ -138,9 +141,7 @@ private:
   rclcpp::TimerBase::SharedPtr _timer;
   rclcpp::Publisher<Marker>::SharedPtr _marker_pub;
   rclcpp::Publisher<MarkerArray>::SharedPtr _marker_array_pub;
-
-  // rclcpp::Subscription<String>::SharedPtr _cmd_sub;
-  // rclcpp::Publisher<String>::SharedPtr _viz_pub; 
+  rmf_schedule_visualizer::VisualizerDataNode& _visualizer_data_node;
   std::string _map_name;
   int _count;
 
@@ -209,7 +210,7 @@ int main(int argc, char* argv[])
   //   return 1;
   // }
 
-  auto rviz_node = std::make_shared<RvizNode>("rviz_node");
+  auto rviz_node = std::make_shared<RvizNode>("rviz_node", *visualizer_data_node);
 
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(visualizer_data_node);
