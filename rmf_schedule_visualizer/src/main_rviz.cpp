@@ -21,6 +21,11 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 
+#include <rmf_traffic/geometry/Box.hpp>
+#include <rmf_traffic/geometry/Circle.hpp>
+#include <rmf_traffic/Time.hpp>
+
+
 using namespace std::chrono_literals;
 
 class RvizNode : public rclcpp::Node
@@ -29,6 +34,7 @@ public:
   using Marker = visualization_msgs::msg::Marker;
   using MarkerArray = visualization_msgs::msg::MarkerArray;
   using Point = geometry_msgs::msg::Point;
+  using RequestParam = rmf_schedule_visualizer::RequestParam;
 
   RvizNode(
       std::string node_name,
@@ -37,7 +43,8 @@ public:
   : Node(node_name),
     _visualizer_data_node(visualizer_data_node),
     _rate(rate),
-    _count(0)
+    _count(0),
+    _map_name("level1")
   {
     _marker_pub = this->create_publisher<Marker>("test_marker", rclcpp::SystemDefaultsQoS());
     _marker_array_pub = this->create_publisher<MarkerArray>("test_marker_array", rclcpp::SystemDefaultsQoS());
@@ -60,25 +67,27 @@ private:
   }
   void timer_callback()
   {
-
-    RCLCPP_INFO(this->get_logger(), "Hello");
     MarkerArray marker_array;
-    Marker marker_x;
-    Marker marker_y;
 
-    marker_x = make_marker(true, 1);
-    marker_array.markers.push_back(marker_x);
+    // TODO store a cache of trajectories to prevent frequent access
+    // update chache whenever mirror manager updates 
+    RequestParam param;
+    param.map_name = _map_name;
+    param.start_time = std::chrono::steady_clock::now();
+    param.finish_time = param.start_time + 120s;
+    _trajectories = _visualizer_data_node.get_trajectories(param);
 
-    if(_count<10)
-    {
-      marker_y = make_marker(false, 2);
-      marker_array.markers.push_back(marker_y);
-    }
-
-    std::cout<<marker_array.markers.size()<<std::endl;
-    _marker_array_pub->publish(marker_array);
-
-    _count++;
+    // Marker marker_x;
+    // Marker marker_y;
+    // marker_x = make_marker(true, 1);
+    // marker_array.markers.push_back(marker_x);
+    // if(_count<10)
+    // {
+    //   marker_y = make_marker(false, 2);
+    //   marker_array.markers.push_back(marker_y);
+    // }
+    // _marker_array_pub->publish(marker_array);
+    // _count++;
 
   }
 
@@ -144,6 +153,7 @@ private:
   rmf_schedule_visualizer::VisualizerDataNode& _visualizer_data_node;
   std::string _map_name;
   int _count;
+  std::vector<rmf_traffic::Trajectory> _trajectories;
 
 };
 
