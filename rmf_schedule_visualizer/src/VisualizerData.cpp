@@ -37,15 +37,12 @@ std::shared_ptr<VisualizerDataNode> VisualizerDataNode::make(
 
   // Creating a mirror manager that queries over all Spacetime in the database schedule 
   auto mirror_mgr_future = rmf_traffic_ros2::schedule::make_mirror(
-        *visualizer_data, rmf_traffic::schedule::Query::Spacetime());
+        *visualizer_data, rmf_traffic::schedule::query_everything().spacetime());
 
   const auto stop_time = start_time + wait_time;
   while(rclcpp::ok() && std::chrono::steady_clock::now() < stop_time)
   {
-    // NOTE(MXG): We need to spin the node in order to get the mirror manager
-    // fully initialized.
     rclcpp::spin_some(visualizer_data);
-
     using namespace std::chrono_literals;
     bool ready = (mirror_mgr_future.wait_for(0s) == std::future_status::ready);
 
