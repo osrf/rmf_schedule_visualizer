@@ -148,24 +148,38 @@ void VisualizerDataNode::start(Data _data)
 
 }
 
-  std::vector<rmf_traffic::Trajectory> VisualizerDataNode::get_trajectories(RequestParam request_param)
-  {
+std::vector<rmf_traffic::Trajectory> VisualizerDataNode::get_trajectories(RequestParam request_param)
+{
+  std::vector<rmf_traffic::Trajectory> trajectories; 
+  const std::vector<std::string> maps {request_param.map_name};
+  const auto query = rmf_traffic::schedule::make_query(
+      maps, &request_param.start_time,
+      &request_param.finish_time);
+  
+  std::lock_guard<std::mutex> guard(_mutex);
+  const auto view = data->mirror.viewer().query(query);
+  for (const auto& element : view)
+    trajectories.push_back(element.trajectory);
 
-    std::vector<rmf_traffic::Trajectory> trajectories; 
-    const std::vector<std::string> maps {request_param.map_name};
-    const auto query = rmf_traffic::schedule::make_query(maps, &request_param.start_time, &request_param.finish_time);
-    
-    // TODO(YV) Use mutex to lock Mirror when accessing View
-    std::lock_guard<std::mutex> guard(_mutex);
-    const auto view = data->mirror.viewer().query(query);
+  return trajectories;
+}
+using Element = rmf_traffic::schedule::Viewer::View::Element;
+std::vector<Element> VisualizerDataNode::get_elements(RequestParam request_param)
+{
+  std::vector<Element> elements; 
+  const std::vector<std::string> maps {request_param.map_name};
+  const auto query = rmf_traffic::schedule::make_query(
+      maps, &request_param.start_time,
+      &request_param.finish_time);
+  
+  std::lock_guard<std::mutex> guard(_mutex);
+  const auto view = data->mirror.viewer().query(query);
 
-    for (const auto& element : view)
-    {
-      trajectories.push_back(element.trajectory);
-    }
+  for (const auto& element : view)
+    elements.push_back(element);
 
-    return trajectories;
-  }
+  return elements;
+}
 
 //==============================================================================
 

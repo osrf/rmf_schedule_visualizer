@@ -108,6 +108,8 @@ public:
 
     SubmitTrajectory::Request request_msg;
     request_msg.trajectories.emplace_back(rmf_traffic_ros2::convert(t));
+    request_msg.fleet.fleet_id = "test_fleet";
+    request_msg.fleet.type = rmf_traffic_msgs::msg::FleetProperties::TYPE_NO_CONTROL;
 
     auto submit_trajectory = this->create_client<SubmitTrajectory>(
         rmf_traffic_ros2::SubmitTrajectoriesSrvName);
