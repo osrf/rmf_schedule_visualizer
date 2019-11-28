@@ -88,9 +88,21 @@ public:
         _velocity);
 
     t.insert(
+        _start_time + 10s,
+        profile,
+        Eigen::Vector3d{10, 0, 0},
+        _velocity);
+    
+    t.insert(
+        _start_time + 15s,
+        profile,
+        Eigen::Vector3d{10, 0, M_PI_2},
+        _velocity);
+    
+    t.insert(
         _finish_time,
         profile,
-        Eigen::Vector3d{30, 0, M_PI},
+        Eigen::Vector3d{10, 10, M_PI_2},
         _velocity);
 
     SubmitTrajectory::Request request_msg;

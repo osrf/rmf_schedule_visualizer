@@ -39,7 +39,7 @@ public:
   RvizNode(
       std::string node_name,
       rmf_schedule_visualizer::VisualizerDataNode& visualizer_data_node,
-      double rate = 1,
+      int rate = 1,
       std::string frame_id = "/map")
   : Node(node_name),
     _visualizer_data_node(visualizer_data_node),
@@ -48,10 +48,11 @@ public:
   {
     _count = 0;
     _map_name= "level1";
-
+    auto sec = std::chrono::seconds(1/ _rate);
+    _timer_period = std::chrono::duration_cast<std::chrono::nanoseconds>(sec);
     _marker_pub = this->create_publisher<Marker>("test_marker", rclcpp::SystemDefaultsQoS());
     _marker_array_pub = this->create_publisher<MarkerArray>("dp2_marker_array", rclcpp::SystemDefaultsQoS());
-    _timer = this->create_wall_timer(500ms, std::bind(&RvizNode::timer_callback, this));
+    _timer = this->create_wall_timer(_timer_period, std::bind(&RvizNode::timer_callback, this));
   }
 
 private:
@@ -177,7 +178,7 @@ private:
     return q;
   }
 
-  double _rate;
+  int _rate;
   rclcpp::TimerBase::SharedPtr _timer;
   rclcpp::Publisher<Marker>::SharedPtr _marker_pub;
   rclcpp::Publisher<MarkerArray>::SharedPtr _marker_array_pub;
@@ -186,6 +187,7 @@ private:
   int _count;
   std::vector<rmf_traffic::Trajectory> _trajectories;
   std::string _frame_id;
+  std::chrono::nanoseconds _timer_period;
 
 };
 
@@ -230,6 +232,10 @@ int main(int argc, char* argv[])
   get_arg(args, "-p", port_string, "port",false);
   const uint16_t port = port_string.empty()? 8006 : std::stoul(port_string, nullptr, 0);
 
+  std::string rate_string;
+  get_arg(args, "-r", rate_string, "rate",false);
+  const int rate = rate_string.empty()? 1.0 : std::stoi(rate_string, nullptr, 0);
+
   const auto visualizer_data_node =
     rmf_schedule_visualizer::VisualizerDataNode::make(node_name);
 
@@ -243,24 +249,14 @@ int main(int argc, char* argv[])
         visualizer_data_node->get_logger(),
         "VisualizerDataNode /" + node_name + " started...");
 
-
-  // const auto server_ptr = rmf_schedule_visualizer::Server::make(port, *visualizer_data_node);
-  
-  // if(!server_ptr)
-  // {
-  //   std::cerr << "Failed to initialize the Server" << std::endl;
-  //   return 1;
-  // }
-
-  auto rviz_node = std::make_shared<RvizNode>("rviz_node", *visualizer_data_node);
+  auto rviz_node = std::make_shared<RvizNode>(
+      "rviz_node",
+      *visualizer_data_node,
+      rate);
 
   rclcpp::executors::MultiThreadedExecutor executor;
   executor.add_node(visualizer_data_node);
   executor.add_node(rviz_node);
-  
-  RCLCPP_INFO(
-        visualizer_data_node->get_logger(),
-        "Websocket server started on port: " + std::to_string(port));
 
   executor.spin();
   RCLCPP_INFO(
