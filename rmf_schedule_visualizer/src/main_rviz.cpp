@@ -24,7 +24,7 @@
 #include <rmf_traffic/geometry/Box.hpp>
 #include <rmf_traffic/geometry/Circle.hpp>
 #include <rmf_traffic/Time.hpp>
-
+#include <rmf_traffic_ros2/Time.hpp>
 
 using namespace std::chrono_literals;
 
@@ -44,29 +44,18 @@ public:
   : Node(node_name),
     _visualizer_data_node(visualizer_data_node),
     _rate(rate),
-    _count(0),
-    _map_name("level1"),
     _frame_id(frame_id)
   {
+    _count = 0;
+    _map_name= "level1";
+
     _marker_pub = this->create_publisher<Marker>("test_marker", rclcpp::SystemDefaultsQoS());
-    _marker_array_pub = this->create_publisher<MarkerArray>("test_marker_array", rclcpp::SystemDefaultsQoS());
+    _marker_array_pub = this->create_publisher<MarkerArray>("dp2_marker_array", rclcpp::SystemDefaultsQoS());
     _timer = this->create_wall_timer(500ms, std::bind(&RvizNode::timer_callback, this));
   }
 
 private:
 
-  builtin_interfaces::msg::Time convert_time(std::chrono::steady_clock::time_point time)
-  {
-    const auto duration = time.time_since_epoch();
-    builtin_interfaces::msg::Time result;
-    result.sec = std::chrono::duration_cast<
-        std::chrono::seconds>(duration).count();
-
-    const auto nanoseconds = duration - std::chrono::seconds(result.sec);
-    result.nanosec = nanoseconds.count();
-
-    return result;
-  }
   void timer_callback()
   {
     MarkerArray marker_array;
@@ -116,8 +105,7 @@ private:
     std::cout<<"Radius: "<<radius<<std::endl;
 
     marker_msg.header.frame_id = _frame_id; // map
-    auto start_time = param.start_time;
-    marker_msg.header.stamp = convert_time(start_time);
+    marker_msg.header.stamp = rmf_traffic_ros2::convert(param.start_time);
     marker_msg.ns = "basic_shapes";
     marker_msg.id = id;
     marker_msg.type = marker_msg.SPHERE;
