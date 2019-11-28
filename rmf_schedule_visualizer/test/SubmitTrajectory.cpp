@@ -130,8 +130,9 @@ public:
       std::cout<<"Service is ready..about to call"<<std::endl;
       submit_trajectory->async_send_request(
           std::make_shared<SubmitTrajectories::Request>(std::move(request_msg)),
-          [=](const SubmitTrajectoryClient::SharedFuture future)
+          [&](const SubmitTrajectoryClient::SharedFuture future)
       {
+        std::cout<<"Inside Callback"<<std::endl;
         if (!future.valid() || std::future_status::ready != future.wait_for(0s))
         {
           RCLCPP_ERROR(
@@ -139,8 +140,10 @@ public:
                 "Failed to get response from schedule");
           return;
         }
+        std::cout<<"Made it past failed response"<<std::endl;
 
         const auto response = *future.get();
+        std::cout<<"Accepted: "<<response.accepted<<std::endl;
         if (!response.error.empty())
         {
           RCLCPP_ERROR(
@@ -202,7 +205,7 @@ int main(int argc, char* argv[])
   Eigen::Vector3d velocity{0,0,0};
 
 
-  rclcpp::spin_some(std::make_shared<SubmitTrajectoryNode>(
+  rclcpp::spin(std::make_shared<SubmitTrajectoryNode>(
         node_name,
         map_name,
         duration,

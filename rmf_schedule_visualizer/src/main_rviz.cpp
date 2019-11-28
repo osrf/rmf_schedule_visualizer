@@ -38,6 +38,7 @@ public:
   using Point = geometry_msgs::msg::Point;
   using RequestParam = rmf_schedule_visualizer::RequestParam;
   using ScheduleConflict = rmf_traffic_msgs::msg::ScheduleConflict;
+  using Element = rmf_traffic::schedule::Viewer::View::Element;
 
   RvizNode(
       std::string node_name,
@@ -66,15 +67,14 @@ private:
 
     // TODO store a cache of trajectories to prevent frequent access
     // update chache whenever mirror manager updates 
-    // maintain unordered map of id and trajectory
 
     RequestParam param;
     param.map_name = _map_name;
     param.start_time = std::chrono::steady_clock::now();
     param.finish_time = param.start_time + 120s;
-    _trajectories = _visualizer_data_node.get_trajectories(param);
+    _elements = _visualizer_data_node.get_elements(param);
 
-    if (_trajectories.size() > 0)
+    if (_elements.size() > 0)
     {
       // for each trajectory create two markers
       // 1) Current position 
@@ -82,27 +82,24 @@ private:
 
       // Temporary count used as id for each trajectory marker
       // id will be sourced from unordered map
-      int count = 0;
-      for(auto it = _trajectories.begin(); it != _trajectories.end(); it++)
+      for(const auto& element : _elements)
       {
-        ++count;
-        auto location_marker = make_location_marker(*it, param, count);
+        auto location_marker = make_location_marker(element, param);
         marker_array.markers.push_back(location_marker);
       }
       RCLCPP_INFO(this->get_logger(),
-          "Publishinb marker array of size: " + std::to_string(marker_array.markers.size()));
+          "Publishing marker array of size: " + std::to_string(marker_array.markers.size()));
        _marker_array_pub->publish(marker_array);
     }
 
   }
 
   visualization_msgs::msg::Marker make_location_marker(
-        rmf_traffic::Trajectory& trajectory,
-        const RequestParam param,
-        int id)
+        Element element,
+        const RequestParam param)
   {
     // TODO Link the color, shape and size of marker to profile of trajectory
-
+    const auto& trajectory = element.trajectory;
     Marker marker_msg;
     const double radius = static_cast<const rmf_traffic::geometry::Circle&>(
           trajectory.begin()->get_profile()->get_shape()->source()).get_radius();
@@ -111,7 +108,7 @@ private:
     marker_msg.header.frame_id = _frame_id; // map
     marker_msg.header.stamp = rmf_traffic_ros2::convert(param.start_time);
     marker_msg.ns = "trajectory";
-    marker_msg.id = id;
+    marker_msg.id = element.id;
     marker_msg.type = marker_msg.CYLINDER;
     marker_msg.action = marker_msg.ADD;
 
@@ -189,6 +186,7 @@ private:
   std::string _map_name;
   int _count;
   std::vector<rmf_traffic::Trajectory> _trajectories;
+  std::vector<Element> _elements;
   std::string _frame_id;
   std::chrono::nanoseconds _timer_period;
 
