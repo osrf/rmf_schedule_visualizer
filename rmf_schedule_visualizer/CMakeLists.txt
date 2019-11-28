@@ -22,6 +22,7 @@ find_package(websocketpp REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system date_time regex random)
 find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
+find_package(rmf_traffic_msgs)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -42,6 +43,7 @@ target_link_libraries(schedule_visualizer
     Boost::date_time
     Boost::regex
     Boost::random
+    ${rmf_traffic_msgs_LIBRARIES}
 )
 
 target_include_directories(schedule_visualizer

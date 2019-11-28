@@ -17,14 +17,16 @@
 
 #include "VisualizerData.hpp"
 #include <rclcpp/rclcpp.hpp>
-#include <geometry_msgs/msg/point.hpp>
-#include <visualization_msgs/msg/marker_array.hpp>
-#include <visualization_msgs/msg/marker.hpp>
 
 #include <rmf_traffic/geometry/Box.hpp>
 #include <rmf_traffic/geometry/Circle.hpp>
 #include <rmf_traffic/Time.hpp>
 #include <rmf_traffic_ros2/Time.hpp>
+
+#include <geometry_msgs/msg/point.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
+#include <visualization_msgs/msg/marker.hpp>
+#include <rmf_traffic_msgs/msg/schedule_conflict.hpp>
 
 using namespace std::chrono_literals;
 
@@ -35,6 +37,7 @@ public:
   using MarkerArray = visualization_msgs::msg::MarkerArray;
   using Point = geometry_msgs::msg::Point;
   using RequestParam = rmf_schedule_visualizer::RequestParam;
+  using ScheduleConflict = rmf_traffic_msgs::msg::ScheduleConflict;
 
   RvizNode(
       std::string node_name,
@@ -227,10 +230,6 @@ int main(int argc, char* argv[])
 
   std::string node_name = "viz";
   get_arg(args, "-n", node_name, "node name", false);
-
-  std::string port_string;
-  get_arg(args, "-p", port_string, "port",false);
-  const uint16_t port = port_string.empty()? 8006 : std::stoul(port_string, nullptr, 0);
 
   std::string rate_string;
   get_arg(args, "-r", rate_string, "rate",false);
