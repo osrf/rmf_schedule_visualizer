@@ -58,6 +58,15 @@ public:
     _timer_period = std::chrono::duration_cast<std::chrono::nanoseconds>(sec);
     _marker_array_pub = this->create_publisher<MarkerArray>("dp2_marker_array", rclcpp::SystemDefaultsQoS());
     _timer = this->create_wall_timer(_timer_period, std::bind(&RvizNode::timer_callback, this));
+    _conflcit_sub = this->create_subscription<ScheduleConflict>(
+          "/rmf_traffic/schedule_conflict",
+          [&](ScheduleConflict::SharedPtr msg)
+          {
+            std::lock_guard<std::mutex> guard(_mutex);
+            _conflict_id.clear();
+            for (const auto& i : msg->indices)
+              _conflict_id.push_back(i);
+          });
   }
 
 private:
@@ -246,11 +255,13 @@ private:
   int _count;
   std::string _map_name;
   std::string _frame_id;
+  std::vector<int64_t> _conflict_id;
   std::vector<rmf_traffic::Trajectory> _trajectories;
   std::vector<Element> _elements;
   std::chrono::nanoseconds _timer_period;
   rclcpp::TimerBase::SharedPtr _timer;
   rclcpp::Publisher<MarkerArray>::SharedPtr _marker_array_pub;
+  rclcpp::Subscription<ScheduleConflict>::SharedPtr _conflcit_sub;
   rmf_schedule_visualizer::VisualizerDataNode& _visualizer_data_node;
   std::mutex _mutex;
 };
