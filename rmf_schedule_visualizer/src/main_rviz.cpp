@@ -251,6 +251,15 @@ private:
     return q;
   }
 
+  bool is_conflict(int64_t id)
+  {
+    if (std::find(_conflict_id.begin(), _conflict_id.end(), id) 
+        != _conflict_id.end())
+      return true;
+    else 
+      return false;
+  }
+
   int _rate;
   int _count;
   std::string _map_name;
