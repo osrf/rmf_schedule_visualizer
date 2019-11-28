@@ -93,37 +93,8 @@ void VisualizerDataNode::start(Data _data)
       _node_name+"/debug",rclcpp::SystemDefaultsQoS(),
       [&](std_msgs::msg::String::UniquePtr msg)
   {
-    if (msg->data == "c")
-    {
-      std::lock_guard<std::mutex> guard(_mutex);
-      size_t count = data->mirror.viewer().query
-        (rmf_traffic::schedule::query_everything()).size();
-      RCLCPP_INFO(this->get_logger(), "Trajectory Count: "+
-           std::to_string(count));
-    }
-    if (msg->data == "t")
-    {
-      // get start_time of all trajectories in the mirror
-      std::lock_guard<std::mutex> guard(_mutex);
-      try
-      {
-        auto view = data->mirror.viewer().query(
-            rmf_traffic::schedule::query_everything());
-        if (view.size()==0)
-          RCLCPP_INFO(this->get_logger(), "View is empty");
-        for (auto trajectory : view)
-        {
-          auto start_time = trajectory.begin()->get_finish_time();
-          RCLCPP_INFO(this->get_logger(), "start_time: " + 
-              std::to_string(start_time.time_since_epoch().count()));
-        }
-      }
-      catch (std::exception& e)
-      {
-        RCLCPP_ERROR(this->get_logger(), e.what());
-      }
-    }
-    else if (msg->data == "info")
+
+    if (msg->data == "info")
     {
       std::lock_guard<std::mutex> guard(_mutex);
       RCLCPP_INFO(this->get_logger(), "Schedule Info: ");
@@ -143,12 +114,11 @@ void VisualizerDataNode::start(Data _data)
         else if (view.size() <= 2)
         {
           // Do not want to iterate larger views
-          size_t t_count = 0;
-          for (auto t : view)
+          for (const auto& element : view)
           {
-            ++t_count;
-            std::cout<<"Trajectory: "<<t_count<<std::endl;
-            std::cout<<"Segment Count: "<<t.size()<<std::endl;
+            auto t = element.trajectory;
+            std::cout<<"Trajectory ID: "<<element.id<<std::endl;
+            std::cout<<"Segment Number: "<<t.size()<<std::endl;
             size_t s_count = 0;
             for (auto it = t.begin(); it!= t.end(); it++)
             {
@@ -189,9 +159,9 @@ void VisualizerDataNode::start(Data _data)
     std::lock_guard<std::mutex> guard(_mutex);
     const auto view = data->mirror.viewer().query(query);
 
-    for (const auto trajectory : view)
+    for (const auto& element : view)
     {
-      trajectories.push_back(trajectory);
+      trajectories.push_back(element.trajectory);
     }
 
     return trajectories;
