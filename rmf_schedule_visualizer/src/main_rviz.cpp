@@ -56,7 +56,6 @@ public:
     _map_name= "level1";
     auto sec = std::chrono::seconds(1/ _rate);
     _timer_period = std::chrono::duration_cast<std::chrono::nanoseconds>(sec);
-    _marker_pub = this->create_publisher<Marker>("test_marker", rclcpp::SystemDefaultsQoS());
     _marker_array_pub = this->create_publisher<MarkerArray>("dp2_marker_array", rclcpp::SystemDefaultsQoS());
     _timer = this->create_wall_timer(_timer_period, std::bind(&RvizNode::timer_callback, this));
   }
@@ -73,7 +72,7 @@ private:
     RequestParam param;
     param.map_name = _map_name;
     param.start_time = std::chrono::steady_clock::now();
-    
+
     std::lock_guard<std::mutex> guard(_mutex);
 
     param.finish_time = param.start_time + 120s;
@@ -251,7 +250,6 @@ private:
   std::vector<Element> _elements;
   std::chrono::nanoseconds _timer_period;
   rclcpp::TimerBase::SharedPtr _timer;
-  rclcpp::Publisher<Marker>::SharedPtr _marker_pub;
   rclcpp::Publisher<MarkerArray>::SharedPtr _marker_array_pub;
   rmf_schedule_visualizer::VisualizerDataNode& _visualizer_data_node;
   std::mutex _mutex;
