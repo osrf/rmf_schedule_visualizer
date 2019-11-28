@@ -165,6 +165,8 @@ private:
   {
     // TODO Link the color, shape and size of marker to profile of trajectory
     const auto& trajectory = element.trajectory;
+    bool conflict = is_conflict(element.id);
+
     Marker marker_msg;
           
     marker_msg.header.frame_id = _frame_id; // map
@@ -191,8 +193,16 @@ private:
     marker_msg.scale.z = 1.0;
 
     // Set the color -- be sure to set alpha to something non-zero!
-    marker_msg.color.r = 0.0f;
-    marker_msg.color.g = 1.0f;
+    if (conflict)
+    {
+      marker_msg.color.r = 1.0f;
+      marker_msg.color.g = 0.0f;
+    }
+    else
+    {
+      marker_msg.color.r = 0.0f;
+      marker_msg.color.g = 1.0f;
+    }
     marker_msg.color.b = 0.0f;
     marker_msg.color.a = 1.0;
     
