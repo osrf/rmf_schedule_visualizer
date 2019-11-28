@@ -66,9 +66,10 @@ public:
   SubmitTrajectoryNode(
       std::string node_name_ ="submit_trajectory_node",
       std::string map_name = "level1",
-      rmf_traffic::Duration duration_ = 400s,
+      rmf_traffic::Duration duration_ = 60s,
       Eigen::Vector3d position_ = Eigen::Vector3d{0,0,0},
-      Eigen::Vector3d velocity_ = Eigen::Vector3d{0,0,0})
+      Eigen::Vector3d velocity_ = Eigen::Vector3d{0,0,0},
+      double radius = 1.0)
   : Node(node_name_),
     _position(position_),
     _velocity(velocity_)
@@ -78,7 +79,7 @@ public:
 
     auto profile = rmf_traffic::Trajectory::Profile::make_guided(
         rmf_traffic::geometry::make_final_convex<
-          rmf_traffic::geometry::Circle>(1.5));
+          rmf_traffic::geometry::Circle>(radius));
     
     rmf_traffic::Trajectory t(map_name);
     t.insert(
@@ -185,6 +186,10 @@ int main(int argc, char* argv[])
   rmf_traffic::Duration duration = 60s;
 
 
+  std::string radius_string;
+  get_arg(args, "-r", radius_string, "radius",false);
+  double radius = radius_string.empty() ? 1.0 : std::stod(radius_string);
+
   Eigen::Vector3d position{0,0,0};
 
   std::string x_string;
@@ -203,7 +208,8 @@ int main(int argc, char* argv[])
         map_name,
         duration,
         position,
-        velocity));
+        velocity,
+        radius));
 
   rclcpp::shutdown();
   return 0;
