@@ -24,8 +24,8 @@
 #include <rmf_traffic/geometry/Circle.hpp>
 #include <rmf_traffic_ros2/StandardNames.hpp>
 
-using SubmitTrajectory = rmf_traffic_msgs::srv::SubmitTrajectories;
-using SubmitTrajectoryClient = rclcpp::Client<SubmitTrajectory>;
+using SubmitTrajectories = rmf_traffic_msgs::srv::SubmitTrajectories;
+using SubmitTrajectoryClient = rclcpp::Client<SubmitTrajectories>;
 using SubmitTrajectoryHandle = SubmitTrajectoryClient::SharedPtr;
 using namespace std::chrono_literals;
 
@@ -106,12 +106,12 @@ public:
         Eigen::Vector3d{10, 10, M_PI_2},
         _velocity);
 
-    SubmitTrajectory::Request request_msg;
+    SubmitTrajectories::Request request_msg;
     request_msg.trajectories.emplace_back(rmf_traffic_ros2::convert(t));
     request_msg.fleet.fleet_id = "test_fleet";
     request_msg.fleet.type = rmf_traffic_msgs::msg::FleetProperties::TYPE_NO_CONTROL;
 
-    auto submit_trajectory = this->create_client<SubmitTrajectory>(
+    auto submit_trajectory = this->create_client<SubmitTrajectories>(
         rmf_traffic_ros2::SubmitTrajectoriesSrvName);
 
     while (!submit_trajectory->wait_for_service(1s)) 
@@ -127,9 +127,10 @@ public:
 
     if (submit_trajectory->service_is_ready())
     {
+      std::cout<<"Service is ready..about to call"<<std::endl;
       submit_trajectory->async_send_request(
-          std::make_shared<SubmitTrajectory::Request>(std::move(request_msg)),
-          [&](const SubmitTrajectoryClient::SharedFuture future)
+          std::make_shared<SubmitTrajectories::Request>(std::move(request_msg)),
+          [=](const SubmitTrajectoryClient::SharedFuture future)
       {
         if (!future.valid() || std::future_status::ready != future.wait_for(0s))
         {
@@ -148,15 +149,15 @@ public:
           return;
         }
       });
-        }
+      std::cout<<"Service complete"<<std::endl;
+    }
     else
     {
       RCLCPP_ERROR(
           this->get_logger(),
-          rmf_traffic_ros2::SubmitTrajectoriesSrvName +" service is unavailable!"
-      );
+          rmf_traffic_ros2::SubmitTrajectoriesSrvName +
+          " service is unavailable!");
     }
-
   }
 
 
