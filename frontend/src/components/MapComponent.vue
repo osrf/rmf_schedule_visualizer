@@ -1,20 +1,29 @@
 <template>
-  <LMap
-    id="map"
+  <l-map
     ref="scheduleMap"
+    class="map"
     :options="MAP_OPTIONS"
     :crs="MAP_CRS"
   >
-    <LControlAttribution
+    <l-control-attribution
       prefix="OSRC-SG"
       position="bottomright"
     />
-    <LControl id="server-time-control" position="topright">
-      <div id="server-time" title="Server Time">
-        {{ currentDate.toLocaleString() }}
-      </div>
-    </LControl>
-  </LMap>
+    <server-date-control :date="currentDate" />
+    <l-control-layers />
+    <l-layer-group
+      v-for="floor in floors"
+      :key="floor.name"
+      :name="floor.name"
+      layer-type="base"
+      ref="floorLayers"
+    >
+      <svg-overlay
+        :svgImage="floor.svgElement"
+        :bounds="floor.bounds"
+      />
+    </l-layer-group>
+  </l-map>
 </template>
 
 <script lang="ts">
@@ -27,18 +36,29 @@ import {
   LControl,
   LControlAttribution,
   LControlLayers,
+  LLayerGroup,
   LMap,
 } from 'vue2-leaflet';
 
+import ServerDateControl from '../components/ServerDateControl.vue';
+import SVGOverlay from '../components/SVGOverlay.vue';
 import { getFloors } from '../mock'
+import { IFloor as _IFloor } from '../models/Floor';
 import { rawCompressedSvgToSvgElement } from '../util';
-import { IFloor } from '../models/Floor';
+
+export interface IFloor extends _IFloor {
+  svgElement?: SVGElement;
+  bounds?: L.LatLngBounds;
+}
 
 @Component({
   components: {
+    ServerDateControl,
+    'svg-overlay': SVGOverlay,
     LControl,
     LControlAttribution,
     LControlLayers,
+    LLayerGroup,
     LMap,
   },
 })
@@ -51,53 +71,24 @@ export default class MapComponent extends Vue {
   public readonly MAP_CRS = L.CRS.Simple;
 
   private readonly IMAGE_SCALE = 0.0125;
-  private readonly MAP_LAYER_CONTROL = new L.Control.Layers();
+  private readonly DEFAULT_FLOOR = 'B2';
+  // private readonly MAP_LAYER_CONTROL = new L.Control.Layers();
   private currentDate = new Date();
 
   // Initialized in mounted()
   private currentFloor!: string;
   private floors: IFloor[] = [];
-  private floorLayers: { [key: string]: L.Layer } = {};
+  private floorLayers: LLayerGroup[] = [];
+  // private floorLayers: { [key: string]: L.Layer } = {};
   private maxBounds!: L.LatLngBounds;
   private map!: L.Map;
 
-  public async created() {
-    this.startClock();
-  }
-
   public async mounted() {
-    await this.$nextTick();
-    this.initializeMap((this.$refs.scheduleMap as any).mapObject as L.Map);
-    await this.updateMap();
-  }
-
-  private startClock() {
-    setInterval(() => {
-      this.currentDate = new Date();
-    }, 1000)
-  }
-
-  private initializeMap(mapObject: L.Map) {
-    if (this.map === mapObject) {
-      return;
-    }
-
-    this.map = mapObject;
-    this.map.addControl(this.MAP_LAYER_CONTROL);
-
-    this.map.on(
-      'baselayerchange',
-      this.onMapBaseLayerChange,
-    )
-  }
-
-  private async updateMap() {
+    this.startClock();
     this.maxBounds = new L.LatLngBounds([0, 0], [0, 0]);
-    this.floors = await produce(this.floors, async (draft) => draft = await getFloors());
-
-    this.floorLayers = produce(this.floorLayers, (draftFloorLayers) => {
-      for (const floor of this.floors) {
-        const { elevation, image, name } = floor;
+    this.floors = produce(await getFloors(), (draft: IFloor[]) => {
+      for (const floor of draft) {
+        const { elevation, image } = floor;
         const { pose, scale } = image;
         const { x, y } = pose;
 
@@ -108,7 +99,7 @@ export default class MapComponent extends Vue {
         const offsetPixelsX = x / this.IMAGE_SCALE;
         const offsetPixelsY = y / this.IMAGE_SCALE;
 
-        const bounds = new L.LatLngBounds(
+        floor.bounds = new L.LatLngBounds(
           new L.LatLng(offsetPixelsY, offsetPixelsX, elevation),
           new L.LatLng(
             offsetPixelsY - height,
@@ -116,32 +107,48 @@ export default class MapComponent extends Vue {
             elevation,
           ),
         );
+        
+        floor.svgElement = svgElement;
 
         if (!this.maxBounds) {
-          this.maxBounds = bounds;
-        } else {
-          this.maxBounds.extend(bounds);
+          this.maxBounds = floor.bounds;
+        }  else {
+          this.maxBounds.extend(floor.bounds);
         }
-
-        const layer = new L.LayerGroup([
-          new L.SVGOverlay(svgElement, bounds)
-        ]);
-
-        draftFloorLayers[name] = layer;
-        this.MAP_LAYER_CONTROL.addBaseLayer(layer, name);
       }
     });
-    
-    const defaultFloor = this.floors[0].name;
-    this.currentFloor = defaultFloor;
-    const layer = this.floorLayers[defaultFloor];
 
-    this.map.eachLayer((layer) => this.map.removeLayer(layer));
-    this.map.addLayer(layer);
+    await this.$nextTick();
+
+    this.map = (this.$refs.scheduleMap as any).mapObject;
+    // this.map.addControl(this.MAP_LAYER_CONTROL);
+    
+    this.floorLayers = produce(
+      this.$refs.floorLayers,
+      draft => draft
+    ) as unknown as LLayerGroup[];
+
     this.map.fitBounds(this.maxBounds);
     this.map.setMaxBounds(this.maxBounds);
-    // this.$refs.scheduleMap.mapObject.LEAFLET_METHOD
+    this.map.eachLayer((layer) => layer.remove());
+    this.map.addLayer(
+      this.floorLayers[0].mapObject as unknown as L.LayerGroup
+    );
   }
+
+  private startClock() {
+    setInterval(() => {
+      this.currentDate = new Date();
+    }, 1000)
+  }
+
+  private initializeMap(mapObject: L.Map) {
+    this.map.on(
+      'baselayerchange',
+      this.onMapBaseLayerChange,
+    )
+  }
+
 
   private onMapBaseLayerChange(event: L.LayersControlEvent) {
     this.currentFloor = event.name;
@@ -149,30 +156,11 @@ export default class MapComponent extends Vue {
 }
 </script>
 
-<style lang="scss">
-#map {
+<style scoped lang="scss">
+.map {
   height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
-}
-
-#server-time-control {
-  float: left;
-  background: #fff;
-  border-radius: 5px 5px 5px 5px;
-  background-clip: padding-box;
-  border: 2px solid rgba(0, 0, 0, 0.2);
-  height: 44px;
-  vertical-align: center;
-}
-
-#server-time-control + div.leaflet-control {
-  clear: none;
-}
-
-#server-time {
-  padding: 3px 5px 0 5px;
-  font-size: 2em;
 }
 </style>
