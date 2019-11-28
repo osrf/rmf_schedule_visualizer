@@ -28,6 +28,8 @@
 #include <visualization_msgs/msg/marker.hpp>
 #include <rmf_traffic_msgs/msg/schedule_conflict.hpp>
 
+#include <mutex>
+
 using namespace std::chrono_literals;
 
 class RvizNode : public rclcpp::Node
@@ -71,6 +73,9 @@ private:
     RequestParam param;
     param.map_name = _map_name;
     param.start_time = std::chrono::steady_clock::now();
+    
+    std::lock_guard<std::mutex> guard(_mutex);
+
     param.finish_time = param.start_time + 120s;
     _elements = _visualizer_data_node.get_elements(param);
 
@@ -249,6 +254,7 @@ private:
   rclcpp::Publisher<Marker>::SharedPtr _marker_pub;
   rclcpp::Publisher<MarkerArray>::SharedPtr _marker_array_pub;
   rmf_schedule_visualizer::VisualizerDataNode& _visualizer_data_node;
+  std::mutex _mutex;
 };
 
 
