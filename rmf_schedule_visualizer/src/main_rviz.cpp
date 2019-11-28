@@ -106,7 +106,7 @@ private:
 
     marker_msg.header.frame_id = _frame_id; // map
     marker_msg.header.stamp = rmf_traffic_ros2::convert(param.start_time);
-    marker_msg.ns = "basic_shapes";
+    marker_msg.ns = "trajectory";
     marker_msg.id = id;
     marker_msg.type = marker_msg.SPHERE;
     marker_msg.action = marker_msg.ADD;
@@ -117,15 +117,16 @@ private:
     marker_msg.pose.position.x = position[0];
     marker_msg.pose.position.y = position[1];
     marker_msg.pose.position.z = 0;
-    // TODO compute quaternion from yaw angle 
-    marker_msg.pose.orientation.x = 0.0;
-    marker_msg.pose.orientation.y = 0.0;
-    marker_msg.pose.orientation.z = 0.0;
-    marker_msg.pose.orientation.w = 1.0;
+
+    auto quat = convert(position[2]);
+    marker_msg.pose.orientation.x = quat.x;
+    marker_msg.pose.orientation.y = quat.y;
+    marker_msg.pose.orientation.z = quat.z;
+    marker_msg.pose.orientation.w = quat.w;
 
     // Set the scale of the marker -- 1x1x1 here means 1m on a side
-    marker_msg.scale.x = 1.0;
-    marker_msg.scale.y = 1.0;
+    marker_msg.scale.x = radius / 1.0;
+    marker_msg.scale.y = radius / 1.0;
     marker_msg.scale.z = 1.0;
 
     // Set the color -- be sure to set alpha to something non-zero!
@@ -151,6 +152,29 @@ private:
     marker_msg.points.push_back(point);
 
     return marker_msg;
+  }
+
+  struct quaternion
+  {
+    double w, x, y, z;
+  };
+
+  quaternion convert(double yaw, double pitch = 0, double roll =0)
+  {
+    double cy = cos(yaw * 0.5);
+    double sy = sin(yaw * 0.5);
+    double cp = cos(pitch * 0.5);
+    double sp = sin(pitch * 0.5);
+    double cr = cos(roll * 0.5);
+    double sr = sin(roll * 0.5);
+
+    quaternion q;
+    q.w = cy * cp * cr + sy * sp * sr;
+    q.x = cy * cp * sr - sy * sp * cr;
+    q.y = sy * cp * sr + cy * sp * cr;
+    q.z = sy * cp * cr - cy * sp * sr;
+
+    return q;
   }
 
   double _rate;

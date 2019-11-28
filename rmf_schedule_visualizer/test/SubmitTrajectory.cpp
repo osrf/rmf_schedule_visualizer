@@ -90,7 +90,7 @@ public:
     t.insert(
         _finish_time,
         profile,
-        Eigen::Vector3d{30, 0, 0},
+        Eigen::Vector3d{30, 0, M_PI},
         _velocity);
 
     SubmitTrajectory::Request request_msg;
