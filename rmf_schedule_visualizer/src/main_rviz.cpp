@@ -86,6 +86,9 @@ private:
       {
         auto location_marker = make_location_marker(element, param);
         marker_array.markers.push_back(location_marker);
+
+        auto path_marker = make_path_marker(element, param);
+        marker_array.markers.push_back(path_marker);
       }
       RCLCPP_INFO(this->get_logger(),
           "Publishing marker array of size: " + std::to_string(marker_array.markers.size()));
@@ -154,30 +157,28 @@ private:
     marker_msg.header.frame_id = _frame_id; // map
     marker_msg.header.stamp = rmf_traffic_ros2::convert(param.start_time);
     marker_msg.ns = "trajectory";
-    marker_msg.id = element.id;
-    marker_msg.type = marker_msg.CYLINDER;
+    marker_msg.id = -1* element.id;
+    marker_msg.type = marker_msg.LINE_STRIP;
     marker_msg.action = marker_msg.ADD;
 
-    // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
     auto motion = trajectory.find(param.start_time)->compute_motion();
     Eigen::Vector3d position =  motion->compute_position(param.start_time);
     marker_msg.pose.position.x = position[0];
     marker_msg.pose.position.y = position[1];
     marker_msg.pose.position.z = 0;
 
-    auto quat = convert(position[2]);
-    marker_msg.pose.orientation.x = quat.x;
-    marker_msg.pose.orientation.y = quat.y;
-    marker_msg.pose.orientation.z = quat.z;
-    marker_msg.pose.orientation.w = quat.w;
+    marker_msg.pose.orientation.x = 0;
+    marker_msg.pose.orientation.y = 0;
+    marker_msg.pose.orientation.z = 0;
+    marker_msg.pose.orientation.w = 1;
 
     // Set the scale of the marker -- 1x1x1 here means 1m on a side
-    marker_msg.scale.x =  1.0;
+    marker_msg.scale.x =  0.5;
     marker_msg.scale.y =  1.0;
     marker_msg.scale.z = 1.0;
 
     // Set the color -- be sure to set alpha to something non-zero!
-    marker_msg.color.r = 1.0f;
+    marker_msg.color.r = 0.0f;
     marker_msg.color.g = 1.0f;
     marker_msg.color.b = 0.0f;
     marker_msg.color.a = 1.0;
@@ -187,17 +188,31 @@ private:
     duration.nanosec = 0;
     marker_msg.lifetime = duration;
 
-    Point point;
-    point.x = 0;
-    point.y = 0;
-    point.z = 0;
-    marker_msg.points.push_back(point);
+    auto t_finish_time = *trajectory.finish_time();
+    auto end_time = t_finish_time < param.finish_time ?
+        t_finish_time : param.finish_time; 
 
-    point.x = 0;
-    point.y = 1;
-    point.z = 0;
-    marker_msg.points.push_back(point);
+    Point tmp_point;
+    tmp_point.x = position[0];
+    tmp_point.y = position[1];
+    tmp_point.z = 0;
+    marker_msg.points.push_back(tmp_point);
 
+    for (auto it = trajectory.find(param.start_time);
+        it < trajectory.find(end_time); it++)
+        {
+          Point p;
+          auto tp = it->get_finish_position();
+          p.x = tp[0];
+          p.y = tp[1];
+          p.z = 0;
+          marker_msg.points.push_back(p);
+        }
+    // adding last point 
+    auto t_last_point = trajectory.find(end_time)->compute_motion()->compute_position(end_time);
+    tmp_point.x = t_last_point[0];
+    tmp_point.y = t_last_point[1];
+    marker_msg.points.push_back(tmp_point);
     return marker_msg;
   }
   struct quaternion
