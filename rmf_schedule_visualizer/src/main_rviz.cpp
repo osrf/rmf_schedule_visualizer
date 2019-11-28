@@ -112,7 +112,7 @@ private:
     marker_msg.header.stamp = rmf_traffic_ros2::convert(param.start_time);
     marker_msg.ns = "trajectory";
     marker_msg.id = id;
-    marker_msg.type = marker_msg.SPHERE;
+    marker_msg.type = marker_msg.CYLINDER;
     marker_msg.action = marker_msg.ADD;
 
     // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
@@ -134,7 +134,7 @@ private:
     marker_msg.scale.z = 1.0;
 
     // Set the color -- be sure to set alpha to something non-zero!
-    marker_msg.color.r = 0.0f;
+    marker_msg.color.r = 1.0f;
     marker_msg.color.g = 1.0f;
     marker_msg.color.b = 0.0f;
     marker_msg.color.a = 1.0;
