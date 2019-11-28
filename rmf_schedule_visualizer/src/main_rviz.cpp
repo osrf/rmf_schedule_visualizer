@@ -103,8 +103,54 @@ private:
     Marker marker_msg;
     const double radius = static_cast<const rmf_traffic::geometry::Circle&>(
           trajectory.begin()->get_profile()->get_shape()->source()).get_radius();
-    std::cout<<"Radius: "<<radius<<std::endl;
 
+    marker_msg.header.frame_id = _frame_id; // map
+    marker_msg.header.stamp = rmf_traffic_ros2::convert(param.start_time);
+    marker_msg.ns = "trajectory";
+    marker_msg.id = element.id;
+    marker_msg.type = marker_msg.CYLINDER;
+    marker_msg.action = marker_msg.ADD;
+
+    // Set the pose of the marker.  This is a full 6DOF pose relative to the frame/time specified in the header
+    auto motion = trajectory.find(param.start_time)->compute_motion();
+    Eigen::Vector3d position =  motion->compute_position(param.start_time);
+    marker_msg.pose.position.x = position[0];
+    marker_msg.pose.position.y = position[1];
+    marker_msg.pose.position.z = 0;
+
+    auto quat = convert(position[2]);
+    marker_msg.pose.orientation.x = quat.x;
+    marker_msg.pose.orientation.y = quat.y;
+    marker_msg.pose.orientation.z = quat.z;
+    marker_msg.pose.orientation.w = quat.w;
+
+    // Set the scale of the marker -- 1x1x1 here means 1m on a side
+    marker_msg.scale.x = radius / 1.0;
+    marker_msg.scale.y = radius / 1.0;
+    marker_msg.scale.z = 1.0;
+
+    // Set the color -- be sure to set alpha to something non-zero!
+    marker_msg.color.r = 1.0f;
+    marker_msg.color.g = 1.0f;
+    marker_msg.color.b = 0.0f;
+    marker_msg.color.a = 1.0;
+    
+    builtin_interfaces::msg::Duration duration;
+    duration.sec = 0.01;
+    duration.nanosec = 0;
+    marker_msg.lifetime = duration;
+
+    return marker_msg;
+  }
+
+  visualization_msgs::msg::Marker make_path_marker(
+        Element element,
+        const RequestParam param)
+  {
+    // TODO Link the color, shape and size of marker to profile of trajectory
+    const auto& trajectory = element.trajectory;
+    Marker marker_msg;
+          
     marker_msg.header.frame_id = _frame_id; // map
     marker_msg.header.stamp = rmf_traffic_ros2::convert(param.start_time);
     marker_msg.ns = "trajectory";
@@ -154,7 +200,6 @@ private:
 
     return marker_msg;
   }
-
   struct quaternion
   {
     double w, x, y, z;
@@ -179,17 +224,16 @@ private:
   }
 
   int _rate;
+  int _count;
+  std::string _map_name;
+  std::string _frame_id;
+  std::vector<rmf_traffic::Trajectory> _trajectories;
+  std::vector<Element> _elements;
+  std::chrono::nanoseconds _timer_period;
   rclcpp::TimerBase::SharedPtr _timer;
   rclcpp::Publisher<Marker>::SharedPtr _marker_pub;
   rclcpp::Publisher<MarkerArray>::SharedPtr _marker_array_pub;
   rmf_schedule_visualizer::VisualizerDataNode& _visualizer_data_node;
-  std::string _map_name;
-  int _count;
-  std::vector<rmf_traffic::Trajectory> _trajectories;
-  std::vector<Element> _elements;
-  std::string _frame_id;
-  std::chrono::nanoseconds _timer_period;
-
 };
 
 
