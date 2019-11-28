@@ -127,11 +127,26 @@ public:
     {
       submit_trajectory->async_send_request(
           std::make_shared<SubmitTrajectory::Request>(std::move(request_msg)),
-          [&](const SubmitTrajectoryClient::SharedFuture response)
+          [&](const SubmitTrajectoryClient::SharedFuture future)
       {
-        this->parse_response(response);
+        if (!future.valid() || std::future_status::ready != future.wait_for(0s))
+        {
+          RCLCPP_ERROR(
+                this->get_logger(),
+                "Failed to get response from schedule");
+          return;
+        }
+
+        const auto response = *future.get();
+        if (!response.error.empty())
+        {
+          RCLCPP_ERROR(
+                this->get_logger(),
+                "Error response from schedule: " + response.error);
+          return;
+        }
       });
-    }
+        }
     else
     {
       RCLCPP_ERROR(
@@ -144,25 +159,6 @@ public:
 
 
 private:
-  void parse_response(
-      const SubmitTrajectoryClient::SharedFuture& response)
-  {
-    const auto response_msg = response.get();
-    if(response_msg->accepted)
-    {
-      RCLCPP_INFO(get_logger(), "Response: accepted");
-    }
-    else
-    {
-      std::string error_msg = "Response: " + response_msg->error + ". Conflicts:";
-      for(const auto& conflict : response_msg->conflicts)
-      {
-        error_msg += "\n -- " + std::to_string(conflict.index) + " @ "
-            + std::to_string(conflict.time);
-      }
-      RCLCPP_INFO(get_logger(), error_msg);
-    }
-  }
   rmf_traffic::Time _start_time;
   rmf_traffic::Time _finish_time;
   Eigen::Vector3d _position;
