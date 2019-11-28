@@ -172,8 +172,8 @@ private:
     marker_msg.pose.orientation.w = quat.w;
 
     // Set the scale of the marker -- 1x1x1 here means 1m on a side
-    marker_msg.scale.x = radius / 1.0;
-    marker_msg.scale.y = radius / 1.0;
+    marker_msg.scale.x =  1.0;
+    marker_msg.scale.y =  1.0;
     marker_msg.scale.z = 1.0;
 
     // Set the color -- be sure to set alpha to something non-zero!
