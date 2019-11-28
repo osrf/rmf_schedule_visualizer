@@ -111,10 +111,10 @@ public:
     request_msg.fleet.fleet_id = "test_fleet";
     request_msg.fleet.type = rmf_traffic_msgs::msg::FleetProperties::TYPE_NO_CONTROL;
 
-    auto submit_trajectory = this->create_client<SubmitTrajectories>(
+    _submit_trajectory = this->create_client<SubmitTrajectories>(
         rmf_traffic_ros2::SubmitTrajectoriesSrvName);
 
-    while (!submit_trajectory->wait_for_service(1s)) 
+    while (!_submit_trajectory->wait_for_service(1s)) 
     {
       if (!rclcpp::ok()) 
       {
@@ -125,14 +125,12 @@ public:
       RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service not available, waiting again...");
     }
 
-    if (submit_trajectory->service_is_ready())
+    if (_submit_trajectory->service_is_ready())
     {
-      std::cout<<"Service is ready..about to call"<<std::endl;
-      submit_trajectory->async_send_request(
+      _submit_trajectory->async_send_request(
           std::make_shared<SubmitTrajectories::Request>(std::move(request_msg)),
           [&](const SubmitTrajectoryClient::SharedFuture future)
       {
-        std::cout<<"Inside Callback"<<std::endl;
         if (!future.valid() || std::future_status::ready != future.wait_for(0s))
         {
           RCLCPP_ERROR(
@@ -140,10 +138,9 @@ public:
                 "Failed to get response from schedule");
           return;
         }
-        std::cout<<"Made it past failed response"<<std::endl;
-
         const auto response = *future.get();
-        std::cout<<"Accepted: "<<response.accepted<<std::endl;
+
+        RCLCPP_INFO(this->get_logger(),"Accepted: " + response.accepted);
         if (!response.error.empty())
         {
           RCLCPP_ERROR(
@@ -152,7 +149,6 @@ public:
           return;
         }
       });
-      std::cout<<"Service complete"<<std::endl;
     }
     else
     {
@@ -169,7 +165,7 @@ private:
   rmf_traffic::Time _finish_time;
   Eigen::Vector3d _position;
   Eigen::Vector3d _velocity;
-
+  SubmitTrajectoryHandle _submit_trajectory;
 };
 
 
