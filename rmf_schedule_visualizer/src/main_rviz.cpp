@@ -163,8 +163,8 @@ private:
 
     auto motion = trajectory.find(param.start_time)->compute_motion();
     Eigen::Vector3d position =  motion->compute_position(param.start_time);
-    marker_msg.pose.position.x = position[0];
-    marker_msg.pose.position.y = position[1];
+    marker_msg.pose.position.x = 0;
+    marker_msg.pose.position.y = 0;
     marker_msg.pose.position.z = 0;
 
     marker_msg.pose.orientation.x = 0;
