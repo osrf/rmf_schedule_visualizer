@@ -3,7 +3,7 @@
 <package format="3">
   <name>rmf_schedule_visualizer</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>A visualizer for trajectories in rmf schedule</description>
   <maintainer email="yadunund@openrobotics.org">Yadunund Vijay</maintainer>
   <license>Apache License 2.0</license>
 
@@ -18,8 +18,12 @@
   <depend>geometry_msgs</depend>
   <depend>visualization_msgs</depend>
 
+  <exec_depend>rosidl_default_runtime</exec_depend>
+  
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
+
+  <member_of_group>rosidl_interface_packages</member_of_group>
 
   <export>
     <build_type>ament_cmake</build_type>

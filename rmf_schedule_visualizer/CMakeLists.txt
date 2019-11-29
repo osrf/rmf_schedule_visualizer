@@ -23,12 +23,25 @@ find_package(Boost REQUIRED COMPONENTS system date_time regex random)
 find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(rmf_traffic_msgs)
+find_package(rosidl_default_generators REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+#===============================================================================
+set(msg_files
+  "msg/RvizParam.msg"
+)
+
+rosidl_generate_interfaces(${PROJECT_NAME}
+  ${msg_files}
+  ${srv_files}
+  ADD_LINTER_TESTS
+)
+
+ament_export_dependencies(rosidl_default_runtime)
 #===============================================================================
 #file(GLOB_RECURSE visualizer_srcs "src/*.cpp")
 #add_executable(schedule_visualizer ${visualizer_srcs})
