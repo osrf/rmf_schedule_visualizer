@@ -55,7 +55,11 @@ public:
     _frame_id(frame_id)
   {
     _count = 0;
-    _rviz_param.map_name= "level1";
+    // TODO add a constructor for RvizParam
+    _rviz_param.map_name = "level1";
+    _rviz_param.query_duration = std::chrono::seconds(60);
+    _rviz_param.start_duration = std::chrono::seconds(0);
+
     auto sec = std::chrono::seconds(1/ _rate);
     _timer_period = std::chrono::duration_cast<std::chrono::nanoseconds>(sec);
     _marker_array_pub = this->create_publisher<MarkerArray>("dp2_marker_array", rclcpp::SystemDefaultsQoS());
@@ -89,6 +93,9 @@ public:
             std::lock_guard<std::mutex> guard(_mutex);
             _rviz_param.map_name = msg->map_name.c_str();
             RCLCPP_INFO(this->get_logger(),"map_name set to: " +_rviz_param.map_name);
+            _rviz_param.query_duration = std::chrono::seconds(msg->query_duration);
+            _rviz_param.start_duration = std::chrono::seconds(msg->start_duration);
+
           },
           sub_param_opt);
   }
@@ -108,9 +115,9 @@ private:
     param.start_time = std::chrono::steady_clock::now();
 
 
-    param.finish_time = param.start_time + 120s;
+    param.finish_time = param.start_time + _rviz_param.query_duration;
     _elements = _visualizer_data_node.get_elements(param);
-
+    std::cout<<"Element size: "<<_elements.size()<<std::endl;
     // for each trajectory create two markers
     // 1) Current position 
     // 2) Path until param.finish_time

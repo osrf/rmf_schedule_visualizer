@@ -66,6 +66,7 @@ public:
   SubmitTrajectoryNode(
       std::string node_name_ ="submit_trajectory_node",
       std::string map_name = "level1",
+      rmf_traffic::Duration start_delay = 0s,
       rmf_traffic::Duration duration_ = 60s,
       Eigen::Vector3d position_ = Eigen::Vector3d{0,0,0},
       Eigen::Vector3d velocity_ = Eigen::Vector3d{0,0,0},
@@ -74,7 +75,7 @@ public:
     _position(position_),
     _velocity(velocity_)
   {
-    _start_time = std::chrono::steady_clock::now() + 5s;
+    _start_time = std::chrono::steady_clock::now() + start_delay;
     _finish_time = _start_time + duration_;
 
     auto profile = rmf_traffic::Trajectory::Profile::make_guided(
@@ -181,8 +182,16 @@ int main(int argc, char* argv[])
 
   std::string duration_string;
   get_arg(args, "-d", duration_string, "duration(s)",false);
-  rmf_traffic::Duration duration = 60s;
+  rmf_traffic::Duration duration = duration_string.empty() ?
+      60s : std::chrono::seconds(std::stoi(duration_string));
 
+  std::string delay_string;
+  get_arg(args, "-D", delay_string, "start delay(s)",false);
+  rmf_traffic::Duration delay = delay_string.empty() ?
+      0s : std::chrono::seconds(std::stoi(delay_string));
+
+std::cout<<"Delay seconds: " + std::to_string(delay.count())<<std::endl;
+std::cout<<"Duration seconds: " + std::to_string(duration.count())<<std::endl;
 
   std::string radius_string;
   get_arg(args, "-r", radius_string, "radius",false);
@@ -204,6 +213,7 @@ int main(int argc, char* argv[])
   rclcpp::spin(std::make_shared<SubmitTrajectoryNode>(
         node_name,
         map_name,
+        delay,
         duration,
         position,
         velocity,
