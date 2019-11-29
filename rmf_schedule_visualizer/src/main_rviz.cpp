@@ -42,6 +42,7 @@ public:
   using RequestParam = rmf_schedule_visualizer::RequestParam;
   using ScheduleConflict = rmf_traffic_msgs::msg::ScheduleConflict;
   using Element = rmf_traffic::schedule::Viewer::View::Element;
+  using RvizParamMsg = rmf_schedule_visualizer_msgs::msg::RvizParam;
 
   RvizNode(
       std::string node_name,
@@ -76,20 +77,20 @@ public:
           },
           sub_conflict_opt);
 
-    _cb_group_map_sub = this->create_callback_group(
+    _cb_group_param_sub = this->create_callback_group(
         rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
-    auto sub_map_opt = rclcpp::SubscriptionOptions();
-    sub_map_opt.callback_group = _cb_group_map_sub;
-    _map_sub = this->create_subscription<std_msgs::msg::String>(
-          node_name + "/map_name",
+    auto sub_param_opt = rclcpp::SubscriptionOptions();
+    sub_param_opt.callback_group = _cb_group_param_sub;
+    _param_sub = this->create_subscription<RvizParamMsg>(
+          node_name + "/param",
           rclcpp::QoS(10),
-          [&](std_msgs::msg::String::SharedPtr msg)
+          [&](RvizParamMsg::SharedPtr msg)
           {
             std::lock_guard<std::mutex> guard(_mutex);
-            _rviz_param.map_name = msg->data.c_str();
+            _rviz_param.map_name = msg->map_name.c_str();
             RCLCPP_INFO(this->get_logger(),"map_name set to: " +_rviz_param.map_name);
           },
-          sub_map_opt);
+          sub_param_opt);
   }
 
 private:
@@ -317,8 +318,8 @@ private:
   rclcpp::Publisher<MarkerArray>::SharedPtr _marker_array_pub;
   rclcpp::Subscription<ScheduleConflict>::SharedPtr _conflcit_sub;
   rclcpp::callback_group::CallbackGroup::SharedPtr _cb_group_conflict_sub;
-  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr _map_sub;
-  rclcpp::callback_group::CallbackGroup::SharedPtr _cb_group_map_sub;
+  rclcpp::Subscription<RvizParamMsg>::SharedPtr _param_sub;
+  rclcpp::callback_group::CallbackGroup::SharedPtr _cb_group_param_sub;
   rmf_schedule_visualizer::VisualizerDataNode& _visualizer_data_node;
   std::mutex _mutex;
 
