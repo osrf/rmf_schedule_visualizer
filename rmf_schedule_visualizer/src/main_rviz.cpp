@@ -231,7 +231,7 @@ private:
       marker_msg.color.g = 1.0f;
     }
     marker_msg.color.b = 0.0f;
-    marker_msg.color.a = 1.0;
+    marker_msg.color.a = 0.5;
     
     builtin_interfaces::msg::Duration duration;
     duration.sec = 0.01;
