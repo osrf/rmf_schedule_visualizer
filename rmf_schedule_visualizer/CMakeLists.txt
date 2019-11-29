@@ -24,24 +24,13 @@ find_package(geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(rmf_traffic_msgs)
 find_package(rosidl_default_generators REQUIRED)
+find_package(builtin_interfaces REQUIRED)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-#===============================================================================
-set(msg_files
-  "msg/RvizParam.msg"
-)
-
-rosidl_generate_interfaces(${PROJECT_NAME}
-  ${msg_files}
-  ${srv_files}
-  ADD_LINTER_TESTS
-)
-
-ament_export_dependencies(rosidl_default_runtime)
 #===============================================================================
 #file(GLOB_RECURSE visualizer_srcs "src/*.cpp")
 #add_executable(schedule_visualizer ${visualizer_srcs})
@@ -80,6 +69,7 @@ target_link_libraries(rviz2
     Boost::date_time
     Boost::regex
     Boost::random
+    ${rmf_traffic_msgs_LIBRARIES}
 )
 
 target_include_directories(rviz2
@@ -90,6 +80,7 @@ target_include_directories(rviz2
     ${visualization_msgs_INCLUDE_DIRS}
     ${geometry_msgs_INCLUDE_DIRS}
 )
+
 #===============================================================================
 
 install(
