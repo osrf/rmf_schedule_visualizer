@@ -53,7 +53,7 @@ public:
     _frame_id(frame_id)
   {
     _count = 0;
-    _map_name= "level1";
+    _rviz_param.map_name= "level1";
     auto sec = std::chrono::seconds(1/ _rate);
     _timer_period = std::chrono::duration_cast<std::chrono::nanoseconds>(sec);
     _marker_array_pub = this->create_publisher<MarkerArray>("dp2_marker_array", rclcpp::SystemDefaultsQoS());
@@ -84,10 +84,9 @@ public:
           rclcpp::QoS(10),
           [&](std_msgs::msg::String::SharedPtr msg)
           {
-            RCLCPP_INFO(this->get_logger(),"Changing map_name to: ", msg->data.c_str());
             std::lock_guard<std::mutex> guard(_mutex);
-            _map_name = msg->data.c_str();
-            std::cout<<"New Map Name: " + _map_name<<std::endl;
+            _rviz_param.map_name = msg->data.c_str();
+            RCLCPP_INFO(this->get_logger(),"map_name set to: " +_rviz_param.map_name);
           },
           sub_map_opt);
   }
@@ -103,7 +102,7 @@ private:
     std::lock_guard<std::mutex> guard(_mutex);
 
     RequestParam param;
-    param.map_name = _map_name;
+    param.map_name = _rviz_param.map_name;
     param.start_time = std::chrono::steady_clock::now();
 
 
@@ -298,9 +297,16 @@ private:
       return false;
   }
 
+
+  struct RvizParam
+  {
+    std::string map_name;
+    rmf_traffic::Duration query_duration;
+    rmf_traffic::Duration start_duration;
+  };
+
   int _rate;
   int _count;
-  std::string _map_name;
   std::string _frame_id;
   std::vector<int64_t> _conflict_id;
   std::vector<rmf_traffic::Trajectory> _trajectories;
@@ -314,6 +320,8 @@ private:
   rclcpp::callback_group::CallbackGroup::SharedPtr _cb_group_map_sub;
   rmf_schedule_visualizer::VisualizerDataNode& _visualizer_data_node;
   std::mutex _mutex;
+
+  RvizParam _rviz_param;
 };
 
 
