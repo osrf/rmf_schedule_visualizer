@@ -61,7 +61,7 @@ public:
     _rviz_param.start_duration = std::chrono::seconds(0);
 
     int64_t s = 1/ _rate ;
-    std::cout<<"Timer seconds: "<<s<<std::endl;
+    // std::cout<<"Timer seconds: "<<s<<std::endl;
     auto sec = std::chrono::seconds(s);
     _timer_period = std::chrono::duration_cast<std::chrono::nanoseconds>(sec);
     _marker_array_pub = this->create_publisher<MarkerArray>("dp2_marker_array", rclcpp::SystemDefaultsQoS());
@@ -123,7 +123,7 @@ private:
     query_param.finish_time = query_param.start_time + _rviz_param.query_duration;
 
     _elements = _visualizer_data_node.get_elements(query_param);
-    std::cout<<"Element size: "<<_elements.size()<<std::endl;
+    // std::cout<<"Element size: "<<_elements.size()<<std::endl;
 
     RequestParam traj_param;
     traj_param.map_name = query_param.map_name;
