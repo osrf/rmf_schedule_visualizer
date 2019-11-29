@@ -94,15 +94,15 @@ private:
     param.finish_time = param.start_time + 120s;
     _elements = _visualizer_data_node.get_elements(param);
 
-    if (_elements.size() > 0)
-    {
-      // for each trajectory create two markers
-      // 1) Current position 
-      // 2) Path until param.finish_time
+    // for each trajectory create two markers
+    // 1) Current position 
+    // 2) Path until param.finish_time
 
-      // Temporary count used as id for each trajectory marker
-      // id will be sourced from unordered map
-      for(const auto& element : _elements)
+    for(const auto& element : _elements)
+    {
+      // create markers for trajectories that are active within time range
+      if ((element.trajectory.begin()->get_finish_time() - param.start_time).count()
+          < 1e-6)
       {
         auto location_marker = make_location_marker(element, param);
         marker_array.markers.push_back(location_marker);
@@ -110,9 +110,13 @@ private:
         auto path_marker = make_path_marker(element, param);
         marker_array.markers.push_back(path_marker);
       }
+    }
+
+    if (!marker_array.markers.empty())
+    {
       RCLCPP_INFO(this->get_logger(),
-          "Publishing marker array of size: " + std::to_string(marker_array.markers.size()));
-       _marker_array_pub->publish(marker_array);
+        "Publishing marker array of size: " + std::to_string(marker_array.markers.size()));
+      _marker_array_pub->publish(marker_array);
     }
 
   }
@@ -121,9 +125,11 @@ private:
         Element element,
         const RequestParam param)
   {
+    Marker marker_msg;
+
     // TODO Link the color, shape and size of marker to profile of trajectory
     const auto& trajectory = element.trajectory;
-    Marker marker_msg;
+
     const double radius = static_cast<const rmf_traffic::geometry::Circle&>(
           trajectory.begin()->get_profile()->get_shape()->source()).get_radius();
 

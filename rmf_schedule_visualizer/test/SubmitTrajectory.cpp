@@ -74,7 +74,7 @@ public:
     _position(position_),
     _velocity(velocity_)
   {
-    _start_time = std::chrono::steady_clock::now();
+    _start_time = std::chrono::steady_clock::now() + 20s;
     _finish_time = _start_time + duration_;
 
     auto profile = rmf_traffic::Trajectory::Profile::make_guided(
