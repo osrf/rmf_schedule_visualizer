@@ -27,7 +27,7 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <rmf_traffic_msgs/msg/schedule_conflict.hpp>
-// #include "rmf_schedule_visualizer/msg/rviz_param.hpp"
+#include "rmf_schedule_visualizer_msgs/msg/rviz_param.hpp"
 
 #include <mutex>
 
