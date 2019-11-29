@@ -65,7 +65,7 @@ public:
     sub_conflict_opt.callback_group = _cb_group_conflict_sub;
     _conflcit_sub = this->create_subscription<ScheduleConflict>(
           "/rmf_traffic/schedule_conflict",
-           rclcpp::QoS(10),
+          rclcpp::QoS(10),
           [&](ScheduleConflict::SharedPtr msg)
           {
             std::lock_guard<std::mutex> guard(_mutex);
@@ -74,6 +74,22 @@ public:
               _conflict_id.push_back(i);
           },
           sub_conflict_opt);
+
+    _cb_group_map_sub = this->create_callback_group(
+        rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
+    auto sub_map_opt = rclcpp::SubscriptionOptions();
+    sub_map_opt.callback_group = _cb_group_map_sub;
+    _map_sub = this->create_subscription<std_msgs::msg::String>(
+          node_name + "/map_name",
+          rclcpp::QoS(10),
+          [&](std_msgs::msg::String::SharedPtr msg)
+          {
+            RCLCPP_INFO(this->get_logger(),"Changing map_name to: ", msg->data.c_str());
+            std::lock_guard<std::mutex> guard(_mutex);
+            _map_name = msg->data.c_str();
+            std::cout<<"New Map Name: " + _map_name<<std::endl;
+          },
+          sub_map_opt);
   }
 
 private:
@@ -84,12 +100,12 @@ private:
 
     // TODO store a cache of trajectories to prevent frequent access
     // update chache whenever mirror manager updates 
+    std::lock_guard<std::mutex> guard(_mutex);
 
     RequestParam param;
     param.map_name = _map_name;
     param.start_time = std::chrono::steady_clock::now();
 
-    std::lock_guard<std::mutex> guard(_mutex);
 
     param.finish_time = param.start_time + 120s;
     _elements = _visualizer_data_node.get_elements(param);
@@ -97,7 +113,6 @@ private:
     // for each trajectory create two markers
     // 1) Current position 
     // 2) Path until param.finish_time
-
     for(const auto& element : _elements)
     {
       // create markers for trajectories that are active within time range
@@ -295,6 +310,8 @@ private:
   rclcpp::Publisher<MarkerArray>::SharedPtr _marker_array_pub;
   rclcpp::Subscription<ScheduleConflict>::SharedPtr _conflcit_sub;
   rclcpp::callback_group::CallbackGroup::SharedPtr _cb_group_conflict_sub;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr _map_sub;
+  rclcpp::callback_group::CallbackGroup::SharedPtr _cb_group_map_sub;
   rmf_schedule_visualizer::VisualizerDataNode& _visualizer_data_node;
   std::mutex _mutex;
 };
