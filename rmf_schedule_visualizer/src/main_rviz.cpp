@@ -198,11 +198,15 @@ private:
     marker_msg.color.b = 0.0f;
     marker_msg.color.a = 1.0;
     
-    builtin_interfaces::msg::Duration duration;
-    duration.nanosec = _timer_period.count();
-    marker_msg.lifetime = convert(_timer_period);
-    // std::count<<<"Location marker sec: "<<std::to_string(marker_msg.lifetime.sec)<<std::endl;
-    // std::count<<<"Location marker nsec: "<<std::to_string(marker_msg.lifetime.nanosec)<<std::endl;
+    if (_rate <= 1)
+      marker_msg.lifetime = convert(_timer_period);
+    else
+    {
+      builtin_interfaces::msg::Duration duration;
+      duration.sec = 1;
+      duration.nanosec = 0;
+      marker_msg.lifetime = duration;
+    }
 
     return marker_msg;
   }
@@ -254,12 +258,16 @@ private:
     marker_msg.color.b = 0.0f;
     marker_msg.color.a = 0.5;
     
-    builtin_interfaces::msg::Duration duration;
-    duration.sec = 0;
-    duration.nanosec = _timer_period.count();
-
-    marker_msg.lifetime = convert(_timer_period);
-  
+    if (_rate <= 1)
+      marker_msg.lifetime = convert(_timer_period);
+    else
+    {
+      builtin_interfaces::msg::Duration duration;
+      duration.sec = 1;
+      duration.nanosec = 0;
+      marker_msg.lifetime = duration;
+    }
+    
     auto t_finish_time = *trajectory.finish_time();
     auto end_time = t_finish_time < param.finish_time ?
         t_finish_time : param.finish_time; 
