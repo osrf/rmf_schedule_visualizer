@@ -190,9 +190,6 @@ int main(int argc, char* argv[])
   rmf_traffic::Duration delay = delay_string.empty() ?
       0s : std::chrono::seconds(std::stoi(delay_string));
 
-std::cout<<"Delay seconds: " + std::to_string(delay.count())<<std::endl;
-std::cout<<"Duration seconds: " + std::to_string(duration.count())<<std::endl;
-
   std::string radius_string;
   get_arg(args, "-r", radius_string, "radius",false);
   double radius = radius_string.empty() ? 1.0 : std::stod(radius_string);

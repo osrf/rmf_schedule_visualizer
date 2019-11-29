@@ -96,7 +96,7 @@ public:
               _rviz_param.map_name = msg->map_name;
             if (msg->query_duration > 0)
               _rviz_param.query_duration = std::chrono::seconds(msg->query_duration);
-            if (msg->start_duration > 0)
+            if (msg->start_duration >= 0)
               _rviz_param.start_duration = std::chrono::seconds(msg->start_duration);
 
             RCLCPP_INFO(this->get_logger(),"Rviz Parameters Updated");
@@ -115,27 +115,31 @@ private:
     // update chache whenever mirror manager updates 
     std::lock_guard<std::mutex> guard(_mutex);
 
-    RequestParam param;
-    param.map_name = _rviz_param.map_name;
-    param.start_time = std::chrono::steady_clock::now();
+    RequestParam query_param;
+    query_param.map_name = _rviz_param.map_name;
+    query_param.start_time = std::chrono::steady_clock::now();
+    query_param.finish_time = query_param.start_time + _rviz_param.query_duration;
 
-
-    param.finish_time = param.start_time + _rviz_param.query_duration;
-    _elements = _visualizer_data_node.get_elements(param);
+    _elements = _visualizer_data_node.get_elements(query_param);
     std::cout<<"Element size: "<<_elements.size()<<std::endl;
+
+    RequestParam traj_param;
+    traj_param.map_name = query_param.map_name;
+    traj_param.start_time = query_param.start_time + _rviz_param.start_duration;
+    traj_param.finish_time = query_param.finish_time;
+
     // for each trajectory create two markers
     // 1) Current position 
     // 2) Path until param.finish_time
-    for(const auto& element : _elements)
+    for (const auto& element : _elements)
     {
       // create markers for trajectories that are active within time range
-      if ((element.trajectory.begin()->get_finish_time() - param.start_time).count()
-          < 1e-6)
+      if (element.trajectory.find(traj_param.start_time) != element.trajectory.end())
       {
-        auto location_marker = make_location_marker(element, param);
+        auto location_marker = make_location_marker(element, traj_param);
         marker_array.markers.push_back(location_marker);
 
-        auto path_marker = make_path_marker(element, param);
+        auto path_marker = make_path_marker(element, traj_param);
         marker_array.markers.push_back(path_marker);
       }
     }
