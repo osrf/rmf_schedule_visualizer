@@ -91,10 +91,15 @@ public:
           [&](RvizParamMsg::SharedPtr msg)
           {
             std::lock_guard<std::mutex> guard(_mutex);
-            _rviz_param.map_name = msg->map_name.c_str();
-            RCLCPP_INFO(this->get_logger(),"map_name set to: " +_rviz_param.map_name);
-            _rviz_param.query_duration = std::chrono::seconds(msg->query_duration);
-            _rviz_param.start_duration = std::chrono::seconds(msg->start_duration);
+
+            if (!msg->map_name.empty())
+              _rviz_param.map_name = msg->map_name;
+            if (msg->query_duration > 0)
+              _rviz_param.query_duration = std::chrono::seconds(msg->query_duration);
+            if (msg->start_duration > 0)
+              _rviz_param.start_duration = std::chrono::seconds(msg->start_duration);
+
+            RCLCPP_INFO(this->get_logger(),"Rviz Parameters Updated");
 
           },
           sub_param_opt);
