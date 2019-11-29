@@ -48,7 +48,7 @@ Additional documentation for this is in the Testing Backend section.
 The rmf_schedule_visualizer node queries for trajectories in the schedule over a window from the current instance in time until a duration of `query_duration`(s) into the future. The query also requires a`map_name`. The position of the robot (yellow cylinder) and its conflict-free path (green) are visualized in rviz. The schedule can be viewed `start_duration` seconds from the current instance.
 The default values of `map_name`, `query_duration` and `start_duration` are "level1", 60s and 0s respectively. These properties can be changed by publihsing an RvizParam msg to /rviz_node/param topic.
 ```
-ros2 topic pub /rviz_node/param rmf_schedule_visualizer_msgs/msg/RvizParam "{map_name: "level2", query_duration: 600, start_duration: 10}"
+ros2 topic pub /rviz_node/param rmf_schedule_visualizer_msgs/msg/RvizParam "{map_name: "level2", query_duration: 600, start_duration: 10}" --once
 
 ```
 
