@@ -47,7 +47,7 @@ public:
   RvizNode(
       std::string node_name,
       rmf_schedule_visualizer::VisualizerDataNode& visualizer_data_node,
-      int rate = 1,
+      double rate = 1,
       std::string frame_id = "/map")
   : Node(node_name),
     _visualizer_data_node(visualizer_data_node),
@@ -60,7 +60,9 @@ public:
     _rviz_param.query_duration = std::chrono::seconds(60);
     _rviz_param.start_duration = std::chrono::seconds(0);
 
-    auto sec = std::chrono::seconds(1/ _rate);
+    int64_t s = 1/ _rate ;
+    std::cout<<"Timer seconds: "<<s<<std::endl;
+    auto sec = std::chrono::seconds(s);
     _timer_period = std::chrono::duration_cast<std::chrono::nanoseconds>(sec);
     _marker_array_pub = this->create_publisher<MarkerArray>("dp2_marker_array", rclcpp::SystemDefaultsQoS());
     _timer = this->create_wall_timer(_timer_period, std::bind(&RvizNode::timer_callback, this));
@@ -197,9 +199,10 @@ private:
     marker_msg.color.a = 1.0;
     
     builtin_interfaces::msg::Duration duration;
-    duration.sec = 0.01;
-    duration.nanosec = 0;
-    marker_msg.lifetime = duration;
+    duration.nanosec = _timer_period.count();
+    marker_msg.lifetime = convert(_timer_period);
+    // std::count<<<"Location marker sec: "<<std::to_string(marker_msg.lifetime.sec)<<std::endl;
+    // std::count<<<"Location marker nsec: "<<std::to_string(marker_msg.lifetime.nanosec)<<std::endl;
 
     return marker_msg;
   }
@@ -252,10 +255,11 @@ private:
     marker_msg.color.a = 0.5;
     
     builtin_interfaces::msg::Duration duration;
-    duration.sec = 0.01;
-    duration.nanosec = 0;
-    marker_msg.lifetime = duration;
+    duration.sec = 0;
+    duration.nanosec = _timer_period.count();
 
+    marker_msg.lifetime = convert(_timer_period);
+  
     auto t_finish_time = *trajectory.finish_time();
     auto end_time = t_finish_time < param.finish_time ?
         t_finish_time : param.finish_time; 
@@ -283,6 +287,18 @@ private:
     marker_msg.points.push_back(tmp_point);
     return marker_msg;
   }
+
+  builtin_interfaces::msg::Duration convert(rmf_traffic::Duration duration)
+  {
+    builtin_interfaces::msg::Duration result;
+    result.sec = std::chrono::duration_cast<
+        std::chrono::seconds>(duration).count();
+    const auto nanoseconds = duration - std::chrono::seconds(result.sec);
+    result.nanosec = nanoseconds.count();
+    
+    return result;
+  }
+
   struct quaternion
   {
     double w, x, y, z;
@@ -323,7 +339,7 @@ private:
     rmf_traffic::Duration start_duration;
   };
 
-  int _rate;
+  double _rate;
   int _count;
   std::string _frame_id;
   std::vector<int64_t> _conflict_id;
@@ -381,7 +397,7 @@ int main(int argc, char* argv[])
 
   std::string rate_string;
   get_arg(args, "-r", rate_string, "rate",false);
-  const int rate = rate_string.empty()? 1.0 : std::stoi(rate_string, nullptr, 0);
+  double rate = rate_string.empty()? 1.0 : std::stod(rate_string);
 
   const auto visualizer_data_node =
     rmf_schedule_visualizer::VisualizerDataNode::make(node_name);
