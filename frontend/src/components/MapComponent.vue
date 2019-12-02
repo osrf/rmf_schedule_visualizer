@@ -23,6 +23,7 @@
         :bounds="floor.bounds"
       />
     </l-layer-group>
+    <visualizer-slider-control />
   </l-map>
 </template>
 
@@ -42,6 +43,7 @@ import {
 
 import ServerDateControl from '../components/ServerDateControl.vue';
 import SVGOverlay from '../components/SVGOverlay.vue';
+import VisualizerSliderControl from '../components/VisualizerSliderControl.vue';
 import { getFloors } from '../mock'
 import { IFloor as _IFloor } from '../models/Floor';
 import { rawCompressedSvgToSvgElement } from '../util';
@@ -60,6 +62,7 @@ export interface IFloor extends _IFloor {
     LControlLayers,
     LLayerGroup,
     LMap,
+    VisualizerSliderControl,
   },
 })
 export default class MapComponent extends Vue {
@@ -121,7 +124,6 @@ export default class MapComponent extends Vue {
     await this.$nextTick();
 
     this.map = (this.$refs.scheduleMap as any).mapObject;
-    // this.map.addControl(this.MAP_LAYER_CONTROL);
     
     this.floorLayers = produce(
       this.$refs.floorLayers,
