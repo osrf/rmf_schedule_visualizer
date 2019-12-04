@@ -1,5 +1,5 @@
-<library path="rviz2_plugin">
-  <class name="rviz2_plugin/SchedulePanel"
+<library path="lib/librviz2_plugin">
+  <class name="rviz2_plugin::SchedulePanel/SchedulePanel"
          type="rviz2_plugin::SchedulePanel"
          base_class_type="rviz_common::Panel">
     <description>
