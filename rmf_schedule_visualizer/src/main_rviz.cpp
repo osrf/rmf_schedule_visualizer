@@ -131,6 +131,9 @@ private:
     traj_param.start_time = query_param.start_time + _rviz_param.start_duration;
     traj_param.finish_time = query_param.finish_time;
 
+    // store the ids of active trajectories
+    std::vector<uint64_t> active_id;
+
     // for each trajectory create two markers
     // 1) Current position 
     // 2) Path until param.finish_time
@@ -139,14 +142,32 @@ private:
       // create markers for trajectories that are active within time range
       if (element.trajectory.find(traj_param.start_time) != element.trajectory.end())
       {
+        active_id.push_back(element.id);
+
         auto location_marker = make_location_marker(element, traj_param);
         marker_array.markers.push_back(location_marker);
-      }
 
-      auto path_marker = make_path_marker(element, traj_param);
-      marker_array.markers.push_back(path_marker);
+        auto path_marker = make_path_marker(element, traj_param);
+        marker_array.markers.push_back(path_marker);
+
+        // adding to id to _marker_tracker 
+        if (_marker_tracker.find(element.id) == _marker_tracker.end())
+          _marker_tracker.insert(element.id);
+      }
+    }
+    
+    // add deletion markers for trajectories no longer active 
+    for (auto marker : _marker_tracker)
+    {
+      if (std::find(active_id.begin(), active_id.end(), marker)
+          == active_id.end())
+      {
+        delete_marker(marker, marker_array);
+        _marker_tracker.erase(marker);
+      }
     }
 
+    // publish marker_array
     if (!marker_array.markers.empty())
     {
       RCLCPP_DEBUG(this->get_logger(),
@@ -154,6 +175,22 @@ private:
       _marker_array_pub->publish(marker_array);
     }
 
+  }
+  visualization_msgs::msg::Marker delete_marker(const uint64_t id, MarkerArray& marker_array)
+  {
+    Marker marker_msg;
+    marker_msg.header.frame_id = _frame_id; // map
+    marker_msg.header.stamp = rmf_traffic_ros2::convert(_visualizer_data_node.now());
+    marker_msg.ns = "trajectory";
+    marker_msg.id = id;
+    marker_msg.type = marker_msg.CYLINDER;
+    marker_msg.action = marker_msg.DELETE;
+    marker_array.markers.push_back(marker_msg);
+
+    //deleting the path marker 
+    marker_msg.id = -1 * id;
+    marker_msg.type = marker_msg.LINE_STRIP;
+    marker_array.markers.push_back(marker_msg);
   }
 
   visualization_msgs::msg::Marker make_location_marker(
@@ -204,7 +241,7 @@ private:
     else
     {
       builtin_interfaces::msg::Duration duration;
-      duration.sec = 10;
+      duration.sec = 1;
       duration.nanosec = 0;
       marker_msg.lifetime = duration;
     }
@@ -271,7 +308,7 @@ private:
     const auto start_time = std::max(t_start_time, param.start_time);
     const auto t_finish_time = *trajectory.finish_time();
     const auto end_time = std::min(t_finish_time, param.finish_time);
-
+ 
     auto make_point = [](const Eigen::Vector3d& tp) -> Point
     {
       Point p;
@@ -349,6 +386,7 @@ private:
   int _count;
   std::string _frame_id;
   std::vector<int64_t> _conflict_id;
+  std::unordered_set<uint64_t> _marker_tracker; 
   std::vector<rmf_traffic::Trajectory> _trajectories;
   std::vector<Element> _elements;
   std::chrono::nanoseconds _timer_period;
