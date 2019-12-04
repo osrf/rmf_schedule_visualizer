@@ -16,7 +16,10 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rmf_schedule_visualizer_msgs REQUIRED)
-find_package(rviz2 REQUIRED)
+find_package(rviz_common REQUIRED)
+find_package(rviz_rendering REQUIRED)
+find_package(rviz_default_plugins REQUIRED)
+
 
 include_directories(${catkin_INCLUDE_DIRS})
 link_directories(${catkin_LIBRARY_DIRS})
@@ -46,6 +49,9 @@ target_link_libraries(${PROJECT_NAME}
     ${QT_LIBRARIES} 
     ${rclcpp_LIBRARIES}
     ${rmf_schedule_visualizer_msgs_LIBRARIES}
+    ${rviz_common_LIBRARIES}
+    ${rviz_rendering_LIBRARIES}
+    ${rviz_default_plugins_LIBRARIES}
 
 )
 
@@ -55,11 +61,15 @@ target_include_directories(${PROJECT_NAME}
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     ${rclcpp_INCLUDE_DIRS}
     ${rmf_schedule_visualizer_msgs_INCLUDE_DIRS}
+    ${rviz_common_INCLUDE_DIRS}
+    ${rviz_rendering_INCLUDE_DIRS}
+    ${rviz_default_plugins_INCLUDE_DIRS}
 )
 
 ament_export_interfaces(${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
-#ament_target_dependencies(${PROJECT_NAME} ${QT_LIBRARIES} rclcpp)
+target_compile_definitions(${PROJECT_NAME} PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
+target_compile_definitions(${PROJECT_NAME} PRIVATE "RVIZ_DEFAULT_PLUGINS_BUILDING_LIBRARY")
 
 install(TARGETS
   ${PROJECT_NAME}
