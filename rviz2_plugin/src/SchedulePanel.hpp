@@ -79,7 +79,7 @@ protected Q_SLOTS:
   // setTopic() with the result.
   void update_topic();
 
-  void update_map();
+  void update_map_name();
   void update_start_duration();
   void update_finish_duration();
 

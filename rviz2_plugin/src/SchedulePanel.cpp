@@ -29,7 +29,8 @@ SchedulePanel::SchedulePanel(QWidget* parent)
     : rviz_common::Panel(parent),
       Node("rviz_plugin_node"),
       _param_topic("/rviz_node/param"),
-      _map_name("level1")
+      _map_name("level1"),
+      _finish_duration("600")
 {
   // Create layout for output topic box
   QHBoxLayout* topic_layout = new QHBoxLayout;
@@ -67,6 +68,11 @@ SchedulePanel::SchedulePanel(QWidget* parent)
 
   // Start the timer.
   output_timer->start(100);
+
+  //updating text fields with default
+  _topic_editor->setText(_param_topic);
+  _map_name_editor->setText(_map_name);
+  _finish_duration_editor->setText(_finish_duration);
 }
 
 void SchedulePanel::update_topic()
@@ -74,7 +80,7 @@ void SchedulePanel::update_topic()
   set_topic(_topic_editor->text());
 }
 
-void SchedulePanel::update_map()
+void SchedulePanel::update_map_name()
 {
   set_topic(_map_name_editor->text());
 }
@@ -138,6 +144,38 @@ void SchedulePanel::send_param()
     // TODO get value from slider
     msg.start_duration = 0;
     _param_pub->publish(msg);
+  }
+}
+
+void SchedulePanel::save(rviz_common::Config config) const
+{
+  rviz_common::Panel::save(config);
+  config.mapSetValue("Topic", _param_topic);
+  config.mapSetValue("Map", _map_name);
+  config.mapSetValue("Finish", _finish_duration);
+}
+
+// Load all configuration data for this panel from the given Config object.
+void SchedulePanel::load(const rviz_common::Config& config)
+{
+  rviz_common::Panel::load(config);
+  QString topic;
+  QString map;
+  QString finish;
+  if( config.mapGetString("Topic", &topic ))
+  {
+    _topic_editor->setText(topic);
+    update_topic();
+  }
+  if( config.mapGetString("Map", &map ))
+  {
+    _map_name_editor->setText(map);
+    update_map_name();
+  }
+  if( config.mapGetString("Finish", &finish ))
+  {
+    _finish_duration_editor->setText(finish);
+    update_finish_duration();
   }
 }
 
