@@ -97,17 +97,38 @@ void SchedulePanel::set_topic(const QString& new_topic)
       // update publisher 
       _param_pub = this->create_publisher<RvizParamMsg>(_param_topic.toStdString(), rclcpp::SystemDefaultsQoS());
     }
-    // rviz::Panel defines the configChanged() signal.  Emitting it
-    // tells RViz that something in this panel has changed that will
-    // affect a saved config file.  Ultimately this signal can cause
-    // QWidget::setWindowModified(true) to be called on the top-level
-    // rviz::VisualizationFrame, which causes a little asterisk ("*")
-    // to show in the window's title bar indicating unsaved changes.
     Q_EMIT configChanged();
   }
   // Gray out the control widget when the output topic is empty.
   // _slider_widget->setEnabled( _param_topic != "" );
 }
+
+void SchedulePanel::set_map_name(const QString& new_name)
+{
+  // Only take action if the name has changed.
+  if(new_name != _map_name)
+  {
+    _map_name = new_name;
+    Q_EMIT configChanged();
+  }
+  // Gray out the control widget when the output topic is empty.
+  // _slider_widget->setEnabled( _param_topic != "" );
+}
+
+
+void SchedulePanel::set_finish_duration(const QString& new_duration)
+{
+  // Only take action if the name has changed.
+  if(new_duration != _finish_duration)
+  {
+    _finish_duration = new_duration;
+    Q_EMIT configChanged();
+  }
+  // Gray out the control widget when the output topic is empty.
+  // _slider_widget->setEnabled( _param_topic != "" );
+}
+
+
 
 } // namespace rviz2_plugin
 
