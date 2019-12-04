@@ -16,7 +16,61 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rmf_schedule_visualizer_msgs REQUIRED)
-find_package(rviz2)
+find_package(rviz2 REQUIRED)
 
+include_directories(${catkin_INCLUDE_DIRS})
+link_directories(${catkin_LIBRARY_DIRS})
+
+if(rviz_QT_VERSION VERSION_LESS "5")
+  message(STATUS "Using Qt4 based on the rviz_QT_VERSION: ${rviz_QT_VERSION}")
+  find_package(Qt4 ${rviz2_QT_VERSION} EXACT REQUIRED QtCore QtGui)
+  include(${QT_USE_FILE})
+else()
+  message(STATUS "Using Qt5 based on the rviz_QT_VERSION: ${rviz2_QT_VERSION}")
+  find_package(Qt5 ${rviz2_QT_VERSION} EXACT REQUIRED Core Widgets)
+  set(QT_LIBRARIES Qt5::Widgets)
+endif()
+
+add_definitions(-DQT_NO_KEYWORDS)
+
+## Here we specify the list of source files.
+## The generated MOC files are included automatically as headers.
+set(SRC_FILES
+  src/SchedulePanel.cpp
+)
+
+add_library(${PROJECT_NAME} ${SRC_FILES})
+
+target_link_libraries(${PROJECT_NAME}
+  PUBLIC
+    ${QT_LIBRARIES} 
+    ${rclcpp_LIBRARIES}
+    ${rmf_schedule_visualizer_msgs_LIBRARIES}
+
+)
+
+target_include_directories(${PROJECT_NAME}
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    ${rclcpp_INCLUDE_DIRS}
+    ${rmf_schedule_visualizer_msgs_INCLUDE_DIRS}
+)
+
+ament_export_interfaces(${PROJECT_NAME} HAS_LIBRARY_TARGET)
+
+#ament_target_dependencies(${PROJECT_NAME} ${QT_LIBRARIES} rclcpp)
+
+install(TARGETS
+  ${PROJECT_NAME}
+  EXPORT ${PROJECT_NAME}
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
+
+#install(FILES
+#  plugin_description.xml
+#  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
 ament_package()

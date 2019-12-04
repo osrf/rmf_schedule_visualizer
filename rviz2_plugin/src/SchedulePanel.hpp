@@ -16,10 +16,10 @@
 */
 
 #ifndef RVIZ2_PLUGIN__SRC__SCHEDULEPANEL_HPP
-#ifndef RVIZ2_PLUGIN__SRC__SCHEDULEPANEL_HPP
+#define RVIZ2_PLUGIN__SRC__SCHEDULEPANEL_HPP
 
 #include <rclcpp/rclcpp.hpp>
-#include <rviz2/panel.h>
+#include <rviz_common/panel.hpp>
 #include <rmf_schedule_visualizer_msgs/msg/rviz_param.hpp>
 
 
@@ -31,7 +31,7 @@ using  RvizParamMsg = rmf_schedule_visualizer_msgs::msg::RvizParam;
 
 class SliderWidget;
 
-class TeleopPanel: public rviz::Panel, rclcpp::Node
+class TeleopPanel: public rviz_common::Panel, rclcpp::Node
 {
 // This class uses Qt slots and is a subclass of QObject, so it needs
 // the Q_OBJECT macro.
@@ -49,8 +49,8 @@ public:
   // Now we declare overrides of rviz::Panel functions for saving and
   // loading data from the config file.  Here the data is the
   // topic name.
-  virtual void load( const rviz::Config& config );
-  virtual void save( rviz::Config config ) const;
+  virtual void load( const rviz_common::Config& config );
+  virtual void save( rviz_common::Config config ) const;
 
   // Next come a couple of public Qt slots.
 public Q_SLOTS:
