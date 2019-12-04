@@ -31,7 +31,7 @@ using  RvizParamMsg = rmf_schedule_visualizer_msgs::msg::RvizParam;
 
 class SliderWidget;
 
-class SchedulePanel: public rviz_common::Panel, rclcpp::Node
+class SchedulePanel: public rviz_common::Panel, public rclcpp::Node
 {
 // This class uses Qt slots and is a subclass of QObject, so it needs
 // the Q_OBJECT macro.
@@ -90,12 +90,13 @@ protected:
 
   // One-line text editor for entering the outgoing ROS topic name.
   QLineEdit* _topic_editor;
-  QLineEdit* _map_name_ediotr;
-  QLineEdit* _finish_time_editor;
+  QLineEdit* _map_name_editor;
+  QLineEdit* _finish_duration_editor;
 
   // The current name of the output topic.
   QString _param_topic;
   QString _map_name;
+  QString _finish_duration;
 
   // The ROS publisher for the visualizer parameters
   rclcpp::Publisher<RvizParamMsg>::SharedPtr _param_pub;

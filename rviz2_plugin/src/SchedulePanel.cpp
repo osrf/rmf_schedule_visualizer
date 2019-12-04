@@ -27,7 +27,9 @@ namespace rviz2_plugin {
 
 SchedulePanel::SchedulePanel(QWidget* parent)
     : rviz_common::Panel(parent),
-      Node("rviz_plugin_node")
+      Node("rviz_plugin_node"),
+      _param_topic("/rviz_node/param"),
+      _map_name("level1")
       {
         // Create layout for output topic box
         QHBoxLayout* topic_layout = new QHBoxLayout;
@@ -36,16 +38,33 @@ SchedulePanel::SchedulePanel(QWidget* parent)
         topic_layout->addWidget(_topic_editor);
 
         // Create layout for map_name box
-        // QHBoxLayout* map_name_layout = new QHBoxLayout;
-        // map_name_layout->addWidget(new QLabel("Map Name:"));
-        // _map_name_editor = new QLineEdit;
-        // map_name_layout->addWidget(_map_name_editor);
+        QHBoxLayout* map_name_layout = new QHBoxLayout;
+        map_name_layout->addWidget(new QLabel("Map Name:"));
+        _map_name_editor = new QLineEdit;
+        map_name_layout->addWidget(_map_name_editor);
+
+        // Create layout for map_name box
+        QHBoxLayout* finish_duration_layout = new QHBoxLayout;
+        finish_duration_layout->addWidget(new QLabel("Finish Time(s):"));
+        _finish_duration_editor = new QLineEdit;
+        finish_duration_layout->addWidget(_finish_duration_editor);
 
         QVBoxLayout* layout = new QVBoxLayout;
         layout->addLayout(topic_layout);
-        // layout->addWidget(map_name_layout);
+        layout->addLayout(map_name_layout);
+        layout->addLayout(finish_duration_layout);
         setLayout(layout);
 
+        QTimer* output_timer = new QTimer( this );
+
+        // connect( drive_widget_, SIGNAL( outputVelocity( float, float )), this, SLOT( setVel( float, float )));
+        connect( _topic_editor, SIGNAL(editingFinished()), this, SLOT(updateTopic()));
+        connect( _map_name_editor, SIGNAL(editingFinished()), this, SLOT(update_map()));
+        connect( _finish_duration_editor, SIGNAL(editingFinished()), this, SLOT(update_finish_duration()));
+        connect( output_timer, SIGNAL(timeout()), this, SLOT(send_param()));
+
+        // Start the timer.
+        output_timer->start( 100 );
       }
 
 
