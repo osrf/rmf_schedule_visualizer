@@ -23,6 +23,7 @@
 #include <rmf_traffic/geometry/Box.hpp>
 #include <rmf_traffic/geometry/Circle.hpp>
 #include <rmf_traffic_ros2/StandardNames.hpp>
+#include <rmf_traffic_ros2/Time.hpp>
 
 using SubmitTrajectories = rmf_traffic_msgs::srv::SubmitTrajectories;
 using SubmitTrajectoryClient = rclcpp::Client<SubmitTrajectories>;
@@ -75,7 +76,7 @@ public:
     _position(position_),
     _velocity(velocity_)
   {
-    _start_time = std::chrono::steady_clock::now() + start_delay;
+    _start_time = rmf_traffic_ros2::convert(get_clock()->now()) + start_delay;
     _finish_time = _start_time + duration_;
 
     auto profile = rmf_traffic::Trajectory::Profile::make_guided(
