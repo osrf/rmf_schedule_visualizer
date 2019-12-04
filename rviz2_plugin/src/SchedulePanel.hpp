@@ -31,7 +31,7 @@ using  RvizParamMsg = rmf_schedule_visualizer_msgs::msg::RvizParam;
 
 class SliderWidget;
 
-class TeleopPanel: public rviz_common::Panel, rclcpp::Node
+class SchedulePanel: public rviz_common::Panel, rclcpp::Node
 {
 // This class uses Qt slots and is a subclass of QObject, so it needs
 // the Q_OBJECT macro.
@@ -44,7 +44,7 @@ public:
   // a default of 0 lets the default constructor work and also lets
   // someone using the class for something else to pass in a parent
   // widget as they normally would with Qt.
-  TeleopPanel( QWidget* parent = 0 );
+  SchedulePanel( QWidget* parent = 0 );
 
   // Now we declare overrides of rviz::Panel functions for saving and
   // loading data from the config file.  Here the data is the
@@ -54,7 +54,7 @@ public:
 
   // Next come a couple of public Qt slots.
 public Q_SLOTS:
-  // The control area, DriveWidget, sends its output to a Qt signal
+  // The control area, SliderWidget, sends its output to a Qt signal
   // for ease of re-use, so here we declare a Qt slot to receive it.
   void set_start_duration(int seconds);
 
@@ -85,8 +85,7 @@ protected Q_SLOTS:
 
   // Then we finish up with protected member variables.
 protected:
-  // The control-area widget which turns mouse events into command
-  // velocities.
+  // The control-area widget which turns mouse events into duration
   SliderWidget* _slider_widget;
 
   // One-line text editor for entering the outgoing ROS topic name.
@@ -98,7 +97,7 @@ protected:
   QString _param_topic;
   QString _map_name;
 
-  // The ROS publisher for the command velocity.
+  // The ROS publisher for the visualizer parameters
   rclcpp::Publisher<RvizParamMsg>::SharedPtr _param_pub;
 
 

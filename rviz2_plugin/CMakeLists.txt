@@ -12,6 +12,10 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic")
 endif()
 
+# Qt5 boilerplate options from http://doc.qt.io/qt-5/cmake-manual.html
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_AUTOMOC ON)
+
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -19,20 +23,7 @@ find_package(rmf_schedule_visualizer_msgs REQUIRED)
 find_package(rviz_common REQUIRED)
 find_package(rviz_rendering REQUIRED)
 find_package(rviz_default_plugins REQUIRED)
-
-
-include_directories(${catkin_INCLUDE_DIRS})
-link_directories(${catkin_LIBRARY_DIRS})
-
-if(rviz_QT_VERSION VERSION_LESS "5")
-  message(STATUS "Using Qt4 based on the rviz_QT_VERSION: ${rviz_QT_VERSION}")
-  find_package(Qt4 ${rviz2_QT_VERSION} EXACT REQUIRED QtCore QtGui)
-  include(${QT_USE_FILE})
-else()
-  message(STATUS "Using Qt5 based on the rviz_QT_VERSION: ${rviz2_QT_VERSION}")
-  find_package(Qt5 ${rviz2_QT_VERSION} EXACT REQUIRED Core Widgets)
-  set(QT_LIBRARIES Qt5::Widgets)
-endif()
+find_package(Qt5 REQUIRED COMPONENTS Widgets Test)
 
 add_definitions(-DQT_NO_KEYWORDS)
 
@@ -42,14 +33,14 @@ set(SRC_FILES
   src/SchedulePanel.cpp
 )
 
-add_library(${PROJECT_NAME} ${SRC_FILES})
+add_library(${PROJECT_NAME} SHARED ${SRC_FILES})
 
 target_link_libraries(${PROJECT_NAME}
   PUBLIC
-    ${QT_LIBRARIES} 
+    ${QT5_LIBRARIES} 
     ${rclcpp_LIBRARIES}
     ${rmf_schedule_visualizer_msgs_LIBRARIES}
-    ${rviz_common_LIBRARIES}
+    rviz_common::rviz_common
     ${rviz_rendering_LIBRARIES}
     ${rviz_default_plugins_LIBRARIES}
 
@@ -58,31 +49,40 @@ target_link_libraries(${PROJECT_NAME}
 target_include_directories(${PROJECT_NAME}
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    $<INSTALL_INTERFACE:include>
     ${rclcpp_INCLUDE_DIRS}
     ${rmf_schedule_visualizer_msgs_INCLUDE_DIRS}
     ${rviz_common_INCLUDE_DIRS}
     ${rviz_rendering_INCLUDE_DIRS}
     ${rviz_default_plugins_INCLUDE_DIRS}
+    ${Qt5Widgets_INCLUDE_DIRS}
 )
-
-ament_export_interfaces(${PROJECT_NAME} HAS_LIBRARY_TARGET)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
 target_compile_definitions(${PROJECT_NAME} PRIVATE "RVIZ_DEFAULT_PLUGINS_BUILDING_LIBRARY")
 
-install(TARGETS
-  ${PROJECT_NAME}
+pluginlib_export_plugin_description_file(${PROJECT_NAME} plugin_description.xml)
+
+ament_export_include_directories(include)
+ament_export_interfaces(${PROJECT_NAME} HAS_LIBRARY_TARGET)
+ament_export_dependencies(
+  Qt5
+  rviz_common
+  rclcpp
+)
+
+install(
+  TARGETS ${PROJECT_NAME}
   EXPORT ${PROJECT_NAME}
-  RUNTIME DESTINATION lib/${PROJECT_NAME}
-  LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
 )
 
 #install(FILES
 #  plugin_description.xml
 #  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
-pluginlib_export_plugin_description_file(${PROJECT_NAME} plugin_description.xml)
 
 ament_package()

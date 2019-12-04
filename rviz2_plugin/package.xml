@@ -11,7 +11,10 @@
 
   <depend>rclcpp</depend>
   <depend>rmf_schedule_visualizer_msgs</depend>
-  <depend>rviz2</depend>
+  <depend>rviz_common</depend>
+  <depend>rviz_rendering</depend>
+  <depend>pluginlib</depend>
+  <depend>resource_retriever</depend>
 
   <test_depend>ament_lint_common</test_depend>
 

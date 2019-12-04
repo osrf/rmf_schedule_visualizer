@@ -16,9 +16,40 @@
 */
 
 #include "SchedulePanel.hpp"
+#include <QPainter>
+#include <QLineEdit>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QTimer>
 
 namespace rviz2_plugin {
+
+SchedulePanel::SchedulePanel(QWidget* parent)
+    : rviz_common::Panel(parent),
+      Node("rviz_plugin_node")
+      {
+        // Create layout for output topic box
+        QHBoxLayout* topic_layout = new QHBoxLayout;
+        topic_layout->addWidget(new QLabel("Output Topic:"));
+        _topic_editor = new QLineEdit;
+        topic_layout->addWidget(_topic_editor);
+
+        // Create layout for map_name box
+        // QHBoxLayout* map_name_layout = new QHBoxLayout;
+        // map_name_layout->addWidget(new QLabel("Map Name:"));
+        // _map_name_editor = new QLineEdit;
+        // map_name_layout->addWidget(_map_name_editor);
+
+        QVBoxLayout* layout = new QVBoxLayout;
+        layout->addLayout(topic_layout);
+        // layout->addWidget(map_name_layout);
+        setLayout(layout);
+
+      }
 
 
 } // namespace rviz2_plugin
 
+#include <pluginlib/class_list_macros.hpp>
+PLUGINLIB_EXPORT_CLASS(rviz2_plugin::SchedulePanel, rviz_common::Panel)
