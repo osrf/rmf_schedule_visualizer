@@ -54,6 +54,9 @@ public:
   /// Function to query Mirror Manager for elements containing
   /// trajectory and ID pairs.
   std::vector<Element> get_elements(RequestParam request_param);
+
+  rmf_traffic::Time now();
+
 private:
   struct Data
   {

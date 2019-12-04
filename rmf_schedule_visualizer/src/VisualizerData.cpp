@@ -179,6 +179,9 @@ std::vector<Element> VisualizerDataNode::get_elements(RequestParam request_param
 }
 
 //==============================================================================
-
+rmf_traffic::Time VisualizerDataNode::now()
+{
+  return rmf_traffic_ros2::convert(get_clock()->now());
+}
 
 } // namespace rmf_schedule_visualizer

@@ -47,6 +47,7 @@ public:
   RvizNode(
       std::string node_name,
       rmf_schedule_visualizer::VisualizerDataNode& visualizer_data_node,
+      std::string map_name,
       double rate = 1,
       std::string frame_id = "/map")
   : Node(node_name),
@@ -56,7 +57,7 @@ public:
   {
     _count = 0;
     // TODO add a constructor for RvizParam
-    _rviz_param.map_name = "level1";
+    _rviz_param.map_name = map_name;
     _rviz_param.query_duration = std::chrono::seconds(60);
     _rviz_param.start_duration = std::chrono::seconds(0);
 
@@ -119,7 +120,7 @@ private:
 
     RequestParam query_param;
     query_param.map_name = _rviz_param.map_name;
-    query_param.start_time = std::chrono::steady_clock::now();
+    query_param.start_time = _visualizer_data_node.now();
     query_param.finish_time = query_param.start_time + _rviz_param.query_duration;
 
     _elements = _visualizer_data_node.get_elements(query_param);
@@ -148,7 +149,7 @@ private:
 
     if (!marker_array.markers.empty())
     {
-      RCLCPP_INFO(this->get_logger(),
+      RCLCPP_DEBUG(this->get_logger(),
         "Publishing marker array of size: " + std::to_string(marker_array.markers.size()));
       _marker_array_pub->publish(marker_array);
     }
@@ -407,6 +408,9 @@ int main(int argc, char* argv[])
   get_arg(args, "-r", rate_string, "rate",false);
   double rate = rate_string.empty()? 1.0 : std::stod(rate_string);
 
+  std::string map_name = "level1";
+  get_arg(args, "-m", map_name, "map name", false);
+
   const auto visualizer_data_node =
     rmf_schedule_visualizer::VisualizerDataNode::make(node_name);
 
@@ -423,6 +427,7 @@ int main(int argc, char* argv[])
   auto rviz_node = std::make_shared<RvizNode>(
       "rviz_node",
       *visualizer_data_node,
+      std::move(map_name),
       rate);
 
   rclcpp::executors::MultiThreadedExecutor executor;
@@ -435,5 +440,4 @@ int main(int argc, char* argv[])
         "Closing down");
 
   rclcpp::shutdown();
-  return 0;
 }
