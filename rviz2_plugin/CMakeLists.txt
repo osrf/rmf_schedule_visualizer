@@ -83,4 +83,6 @@ install(TARGETS
 #  plugin_description.xml
 #  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION})
 
+pluginlib_export_plugin_description_file(${PROJECT_NAME} plugin_description.xml)
+
 ament_package()
