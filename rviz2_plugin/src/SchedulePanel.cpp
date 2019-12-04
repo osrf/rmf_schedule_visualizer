@@ -30,43 +30,84 @@ SchedulePanel::SchedulePanel(QWidget* parent)
       Node("rviz_plugin_node"),
       _param_topic("/rviz_node/param"),
       _map_name("level1")
-      {
-        // Create layout for output topic box
-        QHBoxLayout* topic_layout = new QHBoxLayout;
-        topic_layout->addWidget(new QLabel("Output Topic:"));
-        _topic_editor = new QLineEdit;
-        topic_layout->addWidget(_topic_editor);
+{
+  // Create layout for output topic box
+  QHBoxLayout* topic_layout = new QHBoxLayout;
+  topic_layout->addWidget(new QLabel("Output Topic:"));
+  _topic_editor = new QLineEdit;
+  topic_layout->addWidget(_topic_editor);
 
-        // Create layout for map_name box
-        QHBoxLayout* map_name_layout = new QHBoxLayout;
-        map_name_layout->addWidget(new QLabel("Map Name:"));
-        _map_name_editor = new QLineEdit;
-        map_name_layout->addWidget(_map_name_editor);
+  // Create layout for map_name box
+  QHBoxLayout* map_name_layout = new QHBoxLayout;
+  map_name_layout->addWidget(new QLabel("Map Name:"));
+  _map_name_editor = new QLineEdit;
+  map_name_layout->addWidget(_map_name_editor);
 
-        // Create layout for map_name box
-        QHBoxLayout* finish_duration_layout = new QHBoxLayout;
-        finish_duration_layout->addWidget(new QLabel("Finish Time(s):"));
-        _finish_duration_editor = new QLineEdit;
-        finish_duration_layout->addWidget(_finish_duration_editor);
+  // Create layout for map_name box
+  QHBoxLayout* finish_duration_layout = new QHBoxLayout;
+  finish_duration_layout->addWidget(new QLabel("Finish Time(s):"));
+  _finish_duration_editor = new QLineEdit;
+  finish_duration_layout->addWidget(_finish_duration_editor);
 
-        QVBoxLayout* layout = new QVBoxLayout;
-        layout->addLayout(topic_layout);
-        layout->addLayout(map_name_layout);
-        layout->addLayout(finish_duration_layout);
-        setLayout(layout);
+  //TODO layout for slider widget
 
-        QTimer* output_timer = new QTimer( this );
+  QVBoxLayout* layout = new QVBoxLayout;
+  layout->addLayout(topic_layout);
+  layout->addLayout(map_name_layout);
+  layout->addLayout(finish_duration_layout);
+  setLayout(layout);
 
-        // connect( drive_widget_, SIGNAL( outputVelocity( float, float )), this, SLOT( setVel( float, float )));
-        connect( _topic_editor, SIGNAL(editingFinished()), this, SLOT(updateTopic()));
-        connect( _map_name_editor, SIGNAL(editingFinished()), this, SLOT(update_map()));
-        connect( _finish_duration_editor, SIGNAL(editingFinished()), this, SLOT(update_finish_duration()));
-        connect( output_timer, SIGNAL(timeout()), this, SLOT(send_param()));
+  QTimer* output_timer = new QTimer( this );
 
-        // Start the timer.
-        output_timer->start( 100 );
-      }
+  // connect( drive_widget_, SIGNAL( outputVelocity( float, float )), this, SLOT( setVel( float, float )));
+  connect( _topic_editor, SIGNAL(editingFinished()), this, SLOT(update_topic()));
+  connect( _map_name_editor, SIGNAL(editingFinished()), this, SLOT(update_map()));
+  connect( _finish_duration_editor, SIGNAL(editingFinished()), this, SLOT(update_finish_duration()));
+  connect( output_timer, SIGNAL(timeout()), this, SLOT(send_param()));
 
+  // Start the timer.
+  output_timer->start(100);
+}
+
+void SchedulePanel::update_topic()
+{
+  set_topic(_topic_editor->text());
+}
+
+void SchedulePanel::update_map()
+{
+  set_topic(_map_name_editor->text());
+}
+
+void SchedulePanel::update_finish_duration()
+{
+  set_topic(_finish_duration_editor->text());
+}
+
+// Set the topic name we are publishing to.
+void SchedulePanel::set_topic(const QString& new_topic)
+{
+  // Only take action if the name has changed.
+  if(new_topic != _param_topic)
+  {
+    _param_topic = new_topic;
+    // If the topic is the empty string, don't publish anything.
+    if(_param_topic != "" )
+    {
+      // update publisher 
+      _param_pub = this->create_publisher<RvizParamMsg>(_param_topic.toStdString(), rclcpp::SystemDefaultsQoS());
+    }
+    // rviz::Panel defines the configChanged() signal.  Emitting it
+    // tells RViz that something in this panel has changed that will
+    // affect a saved config file.  Ultimately this signal can cause
+    // QWidget::setWindowModified(true) to be called on the top-level
+    // rviz::VisualizationFrame, which causes a little asterisk ("*")
+    // to show in the window's title bar indicating unsaved changes.
+    Q_EMIT configChanged();
+  }
+  // Gray out the control widget when the output topic is empty.
+  // _slider_widget->setEnabled( _param_topic != "" );
+}
 
 } // namespace rviz2_plugin
 

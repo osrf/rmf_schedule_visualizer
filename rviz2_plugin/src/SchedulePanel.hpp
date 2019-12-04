@@ -66,7 +66,7 @@ public Q_SLOTS:
 
   void set_map_name(const QString& map_name);
 
-  void set_finish_duration(const int& seconds);
+  void set_finish_duration(const QString& map_name);
 
   // Here we declare some internal slots.
 protected Q_SLOTS:
