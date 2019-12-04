@@ -141,10 +141,10 @@ private:
       {
         auto location_marker = make_location_marker(element, traj_param);
         marker_array.markers.push_back(location_marker);
-
-        auto path_marker = make_path_marker(element, traj_param);
-        marker_array.markers.push_back(path_marker);
       }
+
+      auto path_marker = make_path_marker(element, traj_param);
+      marker_array.markers.push_back(path_marker);
     }
 
     if (!marker_array.markers.empty())
@@ -204,7 +204,7 @@ private:
     else
     {
       builtin_interfaces::msg::Duration duration;
-      duration.sec = 1;
+      duration.sec = 10;
       duration.nanosec = 0;
       marker_msg.lifetime = duration;
     }
@@ -218,10 +218,10 @@ private:
   {
     // TODO Link the color, shape and size of marker to profile of trajectory
     const auto& trajectory = element.trajectory;
-    bool conflict = is_conflict(element.id);
+    const bool conflict = is_conflict(element.id);
 
     Marker marker_msg;
-          
+
     marker_msg.header.frame_id = _frame_id; // map
     marker_msg.header.stamp = rmf_traffic_ros2::convert(param.start_time);
     marker_msg.ns = "trajectory";
@@ -229,8 +229,6 @@ private:
     marker_msg.type = marker_msg.LINE_STRIP;
     marker_msg.action = marker_msg.ADD;
 
-    auto motion = trajectory.find(param.start_time)->compute_motion();
-    Eigen::Vector3d position =  motion->compute_position(param.start_time);
     marker_msg.pose.position.x = 0;
     marker_msg.pose.position.y = 0;
     marker_msg.pose.position.z = 0;
@@ -268,32 +266,31 @@ private:
       duration.nanosec = 0;
       marker_msg.lifetime = duration;
     }
-    
-    auto t_finish_time = *trajectory.finish_time();
-    auto end_time = t_finish_time < param.finish_time ?
-        t_finish_time : param.finish_time; 
 
-    Point tmp_point;
-    tmp_point.x = position[0];
-    tmp_point.y = position[1];
-    tmp_point.z = 0;
-    marker_msg.points.push_back(tmp_point);
+    const auto t_start_time = *trajectory.start_time();
+    const auto start_time = std::max(t_start_time, param.start_time);
+    const auto t_finish_time = *trajectory.finish_time();
+    const auto end_time = std::min(t_finish_time, param.finish_time);
 
-    for (auto it = trajectory.find(param.start_time);
-        it < trajectory.find(end_time); it++)
-        {
-          Point p;
-          auto tp = it->get_finish_position();
-          p.x = tp[0];
-          p.y = tp[1];
-          p.z = 0;
-          marker_msg.points.push_back(p);
-        }
-    // adding last point 
-    auto t_last_point = trajectory.find(end_time)->compute_motion()->compute_position(end_time);
-    tmp_point.x = t_last_point[0];
-    tmp_point.y = t_last_point[1];
-    marker_msg.points.push_back(tmp_point);
+    auto make_point = [](const Eigen::Vector3d& tp) -> Point
+    {
+      Point p;
+      p.x = tp[0];
+      p.y = tp[1];
+      p.z = 0;
+      return p;
+    };
+
+    auto it = trajectory.find(start_time);
+    const auto motion = it->compute_motion();
+    marker_msg.points.push_back(
+          make_point(motion->compute_position(start_time)));
+
+    for (; it <= trajectory.find(end_time); it++)
+    {
+      marker_msg.points.push_back(make_point(it->get_finish_position()));
+    }
+
     return marker_msg;
   }
 
