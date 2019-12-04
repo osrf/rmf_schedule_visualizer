@@ -17,6 +17,7 @@
 
 #include <rmf_traffic/Trajectory.hpp>
 #include <rmf_traffic_ros2/Trajectory.hpp>
+#include <rmf_traffic_ros2/Time.hpp>
 #include <rmf_traffic_msgs/srv/submit_trajectories.hpp>
 #include <rmf_traffic/Time.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -75,7 +76,8 @@ public:
     _position(position_),
     _velocity(velocity_)
   {
-    _start_time = std::chrono::steady_clock::now() + start_delay;
+//    _start_time = std::chrono::steady_clock::now() + start_delay;
+    _start_time = rmf_traffic_ros2::convert(get_clock()->now()) + start_delay;
     _finish_time = _start_time + duration_;
 
     auto profile = rmf_traffic::Trajectory::Profile::make_guided(
