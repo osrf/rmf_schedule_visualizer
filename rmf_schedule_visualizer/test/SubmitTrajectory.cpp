@@ -17,6 +17,7 @@
 
 #include <rmf_traffic/Trajectory.hpp>
 #include <rmf_traffic_ros2/Trajectory.hpp>
+#include <rmf_traffic_ros2/Time.hpp>
 #include <rmf_traffic_msgs/srv/submit_trajectories.hpp>
 #include <rmf_traffic/Time.hpp>
 #include <rclcpp/rclcpp.hpp>
