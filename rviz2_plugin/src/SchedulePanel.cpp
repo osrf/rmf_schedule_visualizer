@@ -128,7 +128,18 @@ void SchedulePanel::set_finish_duration(const QString& new_duration)
   // _slider_widget->setEnabled( _param_topic != "" );
 }
 
-
+void SchedulePanel::send_param()
+{
+  if( rclcpp::ok())
+  {
+    RvizParamMsg msg;
+    msg.map_name = _map_name.toStdString();
+    msg.query_duration = std::stoi(_finish_duration.toStdString());
+    // TODO get value from slider
+    msg.start_duration = 0;
+    _param_pub->publish(msg);
+  }
+}
 
 } // namespace rviz2_plugin
 
