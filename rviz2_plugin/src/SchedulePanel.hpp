@@ -36,48 +36,27 @@ class SchedulePanel: public rviz_common::Panel, public rclcpp::Node
 // the Q_OBJECT macro.
 Q_OBJECT
 public:
-  // QWidget subclass constructors usually take a parent widget
-  // parameter (which usually defaults to 0).  At the same time,
-  // pluginlib::ClassLoader creates instances by calling the default
-  // constructor (with no arguments).  Taking the parameter and giving
-  // a default of 0 lets the default constructor work and also lets
-  // someone using the class for something else to pass in a parent
-  // widget as they normally would with Qt.
   SchedulePanel( QWidget* parent = 0 );
 
-  // Now we declare overrides of rviz::Panel functions for saving and
-  // loading data from the config file.  Here the data is the
-  // topic name.
   virtual void load(const rviz_common::Config& config);
   virtual void save(rviz_common::Config config) const;
 
   // Next come a couple of public Qt slots.
 public Q_SLOTS:
-  // The control area, SliderWidget, sends its output to a Qt signal
-  // for ease of re-use, so here we declare a Qt slot to receive it.
   void set_start_duration(int seconds);
-
-  // In this example set_topic() does not get connected to any signal
-  // (it is called directly), but it is easy to define it as a public
-  // slot instead of a private function in case it would be useful to
-  // some other user.
   void set_topic(const QString& topic);
-
   void set_map_name(const QString& map_name);
-
   void set_finish_duration(const QString& map_name);
 
   // Here we declare some internal slots.
 protected Q_SLOTS:
-  // send_param() publishes the current velocity values to a ROS
-  // topic.  Internally this is connected to a timer which calls it 10
-  // times per second.
+  // send_param() publishes the current parameter values to a ROS
+  // topic when any parameter is changed
   void send_param();
 
   // update_topic() reads the topic name from the QLineEdit and calls
   // setTopic() with the result.
   void update_topic();
-
   void update_map_name();
   void update_start_duration();
   void update_finish_duration();
