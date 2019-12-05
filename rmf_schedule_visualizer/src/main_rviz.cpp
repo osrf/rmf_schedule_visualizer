@@ -157,15 +157,19 @@ private:
     }
     
     // add deletion markers for trajectories no longer active 
-    for (auto marker : _marker_tracker)
+    std::unordered_set<uint64_t> removed_markers;
+    for (const auto marker : _marker_tracker)
     {
       if (std::find(active_id.begin(), active_id.end(), marker)
           == active_id.end())
       {
         delete_marker(marker, marker_array);
-        _marker_tracker.erase(marker);
+        removed_markers.insert(marker);
       }
     }
+
+    for (const auto r : removed_markers)
+      _marker_tracker.erase(r);
 
     // publish marker_array
     if (!marker_array.markers.empty())
@@ -176,7 +180,8 @@ private:
     }
 
   }
-  visualization_msgs::msg::Marker delete_marker(const uint64_t id, MarkerArray& marker_array)
+
+  void delete_marker(const uint64_t id, MarkerArray& marker_array)
   {
     Marker marker_msg;
     marker_msg.header.frame_id = _frame_id; // map

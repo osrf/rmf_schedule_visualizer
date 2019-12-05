@@ -92,6 +92,11 @@ install(
 )
 
 install(
+  DIRECTORY config
+  DESTINATION share/${PROJECT_NAME}
+)
+
+install(
   TARGETS schedule_visualizer
     rviz2
   EXPORT schedule_visualizer
