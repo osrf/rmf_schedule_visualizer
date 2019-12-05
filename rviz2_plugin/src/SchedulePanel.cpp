@@ -51,7 +51,7 @@ SchedulePanel::SchedulePanel(QWidget* parent)
 
   // Create layout for map_name box
   QHBoxLayout* finish_duration_layout = new QHBoxLayout;
-  finish_duration_layout->addWidget(new QLabel("Finish Time(s):"));
+  finish_duration_layout->addWidget(new QLabel("Query Duration(s):"));
   _finish_duration_editor = new QLineEdit;
   finish_duration_layout->addWidget(_finish_duration_editor);
 
@@ -63,16 +63,16 @@ SchedulePanel::SchedulePanel(QWidget* parent)
   layout->addLayout(finish_duration_layout);
   setLayout(layout);
 
-  _output_timer = new QTimer(this);
+  // _output_timer = new QTimer(this);
 
   // connect(_slider_widget, SIGNAL( outputVelocity( float, float )), this, SLOT( setVel( float, float )));
   connect( _topic_editor, SIGNAL(editingFinished()), this, SLOT(update_topic()));
   connect(_map_name_editor, SIGNAL(editingFinished()), this, SLOT(update_map_name()));
   connect(_finish_duration_editor, SIGNAL(editingFinished()), this, SLOT(update_finish_duration()));
-  connect(_output_timer, SIGNAL(timeout()), this, SLOT(send_param()));
+  // connect(_output_timer, SIGNAL(timeout()), this, SLOT(send_param()));
 
   // Start the timer.
-  _output_timer->start(100);
+  // _output_timer->start(100);
 
   //updating text fields with default
   _topic_editor->setText(_param_topic);
@@ -87,12 +87,12 @@ void SchedulePanel::update_topic()
 
 void SchedulePanel::update_map_name()
 {
-  set_topic(_map_name_editor->text());
+  set_map_name(_map_name_editor->text());
 }
 
 void SchedulePanel::update_finish_duration()
 {
-  set_topic(_finish_duration_editor->text());
+  set_finish_duration(_finish_duration_editor->text());
 }
 
 // Set the topic name we are publishing to.
@@ -107,6 +107,8 @@ void SchedulePanel::set_topic(const QString& new_topic)
     {
       // update publisher 
       _param_pub = this->create_publisher<RvizParamMsg>(_param_topic.toStdString(), rclcpp::SystemDefaultsQoS());
+      // send new message 
+      send_param();
     }
     Q_EMIT configChanged();
   }
@@ -120,6 +122,7 @@ void SchedulePanel::set_map_name(const QString& new_name)
   if(new_name != _map_name)
   {
     _map_name = new_name;
+    send_param();
     Q_EMIT configChanged();
   }
   // Gray out the control widget when the output topic is empty.
@@ -133,6 +136,7 @@ void SchedulePanel::set_finish_duration(const QString& new_duration)
   if(new_duration != _finish_duration)
   {
     _finish_duration = new_duration;
+    send_param();
     Q_EMIT configChanged();
   }
   // Gray out the control widget when the output topic is empty.
