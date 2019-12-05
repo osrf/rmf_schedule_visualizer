@@ -32,6 +32,11 @@ SchedulePanel::SchedulePanel(QWidget* parent)
       _map_name("level1"),
       _finish_duration("600")
 {
+
+  // creating publisher 
+  _param_pub = this->create_publisher<RvizParamMsg>(
+      _param_topic.toStdString(), rclcpp::SystemDefaultsQoS());
+
   // Create layout for output topic box
   QHBoxLayout* topic_layout = new QHBoxLayout;
   topic_layout->addWidget(new QLabel("Output Topic:"));
@@ -58,16 +63,16 @@ SchedulePanel::SchedulePanel(QWidget* parent)
   layout->addLayout(finish_duration_layout);
   setLayout(layout);
 
-  QTimer* output_timer = new QTimer( this );
+  _output_timer = new QTimer(this);
 
-  // connect( drive_widget_, SIGNAL( outputVelocity( float, float )), this, SLOT( setVel( float, float )));
+  // connect(_slider_widget, SIGNAL( outputVelocity( float, float )), this, SLOT( setVel( float, float )));
   connect( _topic_editor, SIGNAL(editingFinished()), this, SLOT(update_topic()));
-  connect( _map_name_editor, SIGNAL(editingFinished()), this, SLOT(update_map()));
-  connect( _finish_duration_editor, SIGNAL(editingFinished()), this, SLOT(update_finish_duration()));
-  connect( output_timer, SIGNAL(timeout()), this, SLOT(send_param()));
+  connect(_map_name_editor, SIGNAL(editingFinished()), this, SLOT(update_map_name()));
+  connect(_finish_duration_editor, SIGNAL(editingFinished()), this, SLOT(update_finish_duration()));
+  connect(_output_timer, SIGNAL(timeout()), this, SLOT(send_param()));
 
   // Start the timer.
-  output_timer->start(100);
+  _output_timer->start(100);
 
   //updating text fields with default
   _topic_editor->setText(_param_topic);

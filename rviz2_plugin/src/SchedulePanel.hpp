@@ -29,7 +29,7 @@ namespace rviz2_plugin {
 
 using  RvizParamMsg = rmf_schedule_visualizer_msgs::msg::RvizParam;
 
-class SliderWidget;
+// class SliderWidget;
 
 class SchedulePanel: public rviz_common::Panel, public rclcpp::Node
 {
@@ -49,8 +49,8 @@ public:
   // Now we declare overrides of rviz::Panel functions for saving and
   // loading data from the config file.  Here the data is the
   // topic name.
-  virtual void load( const rviz_common::Config& config );
-  virtual void save( rviz_common::Config config ) const;
+  virtual void load(const rviz_common::Config& config);
+  virtual void save(rviz_common::Config config) const;
 
   // Next come a couple of public Qt slots.
 public Q_SLOTS:
@@ -86,7 +86,7 @@ protected Q_SLOTS:
   // Then we finish up with protected member variables.
 protected:
   // The control-area widget which turns mouse events into duration
-  SliderWidget* _slider_widget;
+  // SliderWidget* _slider_widget;
 
   // One-line text editor for entering the outgoing ROS topic name.
   QLineEdit* _topic_editor;
@@ -98,6 +98,8 @@ protected:
   QString _map_name;
   QString _finish_duration;
 
+  // Timer variable
+  QTimer* _output_timer;
   // The ROS publisher for the visualizer parameters
   rclcpp::Publisher<RvizParamMsg>::SharedPtr _param_pub;
 
