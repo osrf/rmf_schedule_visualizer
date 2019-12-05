@@ -49,17 +49,26 @@ SchedulePanel::SchedulePanel(QWidget* parent)
   _map_name_editor = new QLineEdit;
   map_name_layout->addWidget(_map_name_editor);
 
-  // Create layout for map_name box
+  // Create layout for finish_duration box
   QHBoxLayout* finish_duration_layout = new QHBoxLayout;
   finish_duration_layout->addWidget(new QLabel("Query Duration(s):"));
   _finish_duration_editor = new QLineEdit;
   finish_duration_layout->addWidget(_finish_duration_editor);
 
-  //TODO layout for slider widget
+  // Create layout for start_duration slider box
+  QVBoxLayout* start_duration_layout = new QVBoxLayout;
+  start_duration_layout->addWidget(new QLabel("Start Duration(s):"));
+  _start_duration_slider = new QSlider(Qt::Horizontal);
+  start_duration_layout->addWidget(_start_duration_slider);
+  _start_duration_editor = new QLineEdit;
+  start_duration_layout->addWidget(_start_duration_editor);
 
+
+  // Combine all layouts in vertival layput
   QVBoxLayout* layout = new QVBoxLayout;
   layout->addLayout(topic_layout);
   layout->addLayout(map_name_layout);
+  layout->addLayout(start_duration_layout);
   layout->addLayout(finish_duration_layout);
   setLayout(layout);
 

@@ -21,9 +21,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rviz_common/panel.hpp>
 #include <rmf_schedule_visualizer_msgs/msg/rviz_param.hpp>
-
-
-class QLineEdit;
+#include<QSlider>
+#include <QLineEdit>
 
 namespace rviz2_plugin {
 
@@ -85,27 +84,28 @@ protected Q_SLOTS:
 
   // Then we finish up with protected member variables.
 protected:
-  // The control-area widget which turns mouse events into duration
-  // SliderWidget* _slider_widget;
+
+  // Slider widget 
+  // SlidersGroup* _start_duration_slider;
+  QSlider* _start_duration_slider;
 
   // One-line text editor for entering the outgoing ROS topic name.
   QLineEdit* _topic_editor;
   QLineEdit* _map_name_editor;
   QLineEdit* _finish_duration_editor;
+  QLineEdit* _start_duration_editor;
 
   // The current name of the output topic.
   QString _param_topic;
   QString _map_name;
   QString _finish_duration;
-
-  // Timer variable
-  QTimer* _output_timer;
-  // The ROS publisher for the visualizer parameters
-  rclcpp::Publisher<RvizParamMsg>::SharedPtr _param_pub;
-
+  QString _start_duration;
 
   // The latest start_duration values from the drive widget.
-  int _start_duration;
+  int _start_duration_value;
+
+  // The ROS publisher for the visualizer parameters
+  rclcpp::Publisher<RvizParamMsg>::SharedPtr _param_pub;
 };
 
 } // namespace rviz2_plugin

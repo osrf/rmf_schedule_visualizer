@@ -43,6 +43,7 @@ target_link_libraries(${PROJECT_NAME}
     rviz_common::rviz_common
     ${rviz_rendering_LIBRARIES}
     ${rviz_default_plugins_LIBRARIES}
+    ${Qt5Widgets_LIBRARIES}
 
 )
 
@@ -56,6 +57,7 @@ target_include_directories(${PROJECT_NAME}
     ${rviz_rendering_INCLUDE_DIRS}
     ${rviz_default_plugins_INCLUDE_DIRS}
     ${Qt5Widgets_INCLUDE_DIRS}
+    ${QT5_INCLUDE_DIRS}
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
@@ -69,6 +71,7 @@ ament_export_dependencies(
   Qt5
   rviz_common
   rclcpp
+  Qt5Widgets
 )
 
 install(
