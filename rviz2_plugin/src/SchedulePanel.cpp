@@ -30,7 +30,8 @@ SchedulePanel::SchedulePanel(QWidget* parent)
       Node("rviz_plugin_node"),
       _param_topic("/rviz_node/param"),
       _map_name("level1"),
-      _finish_duration("600")
+      _finish_duration("600"),
+      _start_duration_value(0)
 {
 
   // creating publisher 
@@ -59,6 +60,11 @@ SchedulePanel::SchedulePanel(QWidget* parent)
   QVBoxLayout* start_duration_layout = new QVBoxLayout;
   start_duration_layout->addWidget(new QLabel("Start Duration(s):"));
   _start_duration_slider = new QSlider(Qt::Horizontal);
+  _start_duration_slider->setMinimum(0);
+  // set maximum to 1 hr
+  // TODO read max value from text box
+  _start_duration_slider->setMaximum(600);
+  _start_duration_slider->setSingleStep(5);
   start_duration_layout->addWidget(_start_duration_slider);
   _start_duration_editor = new QLineEdit;
   start_duration_layout->addWidget(_start_duration_editor);
@@ -74,19 +80,26 @@ SchedulePanel::SchedulePanel(QWidget* parent)
 
   // _output_timer = new QTimer(this);
 
-  // connect(_slider_widget, SIGNAL( outputVelocity( float, float )), this, SLOT( setVel( float, float )));
-  connect( _topic_editor, SIGNAL(editingFinished()), this, SLOT(update_topic()));
-  connect(_map_name_editor, SIGNAL(editingFinished()), this, SLOT(update_map_name()));
-  connect(_finish_duration_editor, SIGNAL(editingFinished()), this, SLOT(update_finish_duration()));
-  // connect(_output_timer, SIGNAL(timeout()), this, SLOT(send_param()));
-
-  // Start the timer.
-  // _output_timer->start(100);
+  connect( _topic_editor,
+      SIGNAL(editingFinished()), this, SLOT(update_topic()));
+  connect(_map_name_editor,
+      SIGNAL(editingFinished()), this, SLOT(update_map_name()));
+  connect(_finish_duration_editor,
+      SIGNAL(editingFinished()), this, SLOT(update_finish_duration()));
+  connect(_start_duration_slider,
+      SIGNAL(valueChanged(int)), this, SLOT(update_start_duration()));
 
   //updating text fields with default
   _topic_editor->setText(_param_topic);
   _map_name_editor->setText(_map_name);
   _finish_duration_editor->setText(_finish_duration);
+  _start_duration_editor->setText("0");
+
+}
+
+void SchedulePanel::update_start_duration()
+{
+  set_start_duration(_start_duration_slider->value());
 }
 
 void SchedulePanel::update_topic()
@@ -104,63 +117,68 @@ void SchedulePanel::update_finish_duration()
   set_finish_duration(_finish_duration_editor->text());
 }
 
-// Set the topic name we are publishing to.
+void SchedulePanel::set_start_duration(const int new_value)
+{
+  if (new_value != _start_duration_value && new_value >= 0)
+  {
+    _start_duration_value = new_value;
+    // update text box
+    _start_duration_editor->setText(QString::number(_start_duration_value));
+    send_param();
+  }
+
+
+}
 void SchedulePanel::set_topic(const QString& new_topic)
 {
   // Only take action if the name has changed.
-  if(new_topic != _param_topic)
+  if (new_topic != _param_topic)
   {
     _param_topic = new_topic;
     // If the topic is the empty string, don't publish anything.
-    if(_param_topic != "" )
+    if (_param_topic != "")
     {
       // update publisher 
-      _param_pub = this->create_publisher<RvizParamMsg>(_param_topic.toStdString(), rclcpp::SystemDefaultsQoS());
+      _param_pub = this->create_publisher<RvizParamMsg>(
+          _param_topic.toStdString(), rclcpp::SystemDefaultsQoS());
       // send new message 
       send_param();
     }
     Q_EMIT configChanged();
   }
-  // Gray out the control widget when the output topic is empty.
-  // _slider_widget->setEnabled( _param_topic != "" );
 }
 
 void SchedulePanel::set_map_name(const QString& new_name)
 {
   // Only take action if the name has changed.
-  if(new_name != _map_name)
+  if (new_name != _map_name)
   {
     _map_name = new_name;
     send_param();
     Q_EMIT configChanged();
   }
-  // Gray out the control widget when the output topic is empty.
-  // _slider_widget->setEnabled( _param_topic != "" );
 }
 
 
 void SchedulePanel::set_finish_duration(const QString& new_duration)
 {
   // Only take action if the name has changed.
-  if(new_duration != _finish_duration)
+  if (new_duration != _finish_duration)
   {
     _finish_duration = new_duration;
     send_param();
     Q_EMIT configChanged();
   }
-  // Gray out the control widget when the output topic is empty.
-  // _slider_widget->setEnabled( _param_topic != "" );
 }
 
 void SchedulePanel::send_param()
 {
-  if( rclcpp::ok())
+  if (rclcpp::ok())
   {
     RvizParamMsg msg;
     msg.map_name = _map_name.toStdString();
     msg.query_duration = std::stoi(_finish_duration.toStdString());
-    // TODO get value from slider
-    msg.start_duration = 0;
+    msg.start_duration = _start_duration_value;
     _param_pub->publish(msg);
   }
 }
@@ -180,17 +198,17 @@ void SchedulePanel::load(const rviz_common::Config& config)
   QString topic;
   QString map;
   QString finish;
-  if( config.mapGetString("Topic", &topic ))
+  if (config.mapGetString("Topic", &topic))
   {
     _topic_editor->setText(topic);
     update_topic();
   }
-  if( config.mapGetString("Map", &map ))
+  if (config.mapGetString("Map", &map))
   {
     _map_name_editor->setText(map);
     update_map_name();
   }
-  if( config.mapGetString("Finish", &finish ))
+  if (config.mapGetString("Finish", &finish))
   {
     _finish_duration_editor->setText(finish);
     update_finish_duration();
