@@ -61,7 +61,7 @@ target_include_directories(${PROJECT_NAME}
 target_compile_definitions(${PROJECT_NAME} PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
 target_compile_definitions(${PROJECT_NAME} PRIVATE "RVIZ_DEFAULT_PLUGINS_BUILDING_LIBRARY")
 
-pluginlib_export_plugin_description_file(${PROJECT_NAME} plugin_description.xml)
+pluginlib_export_plugin_description_file(rviz_common plugin_description.xml)
 
 ament_export_include_directories(include)
 ament_export_interfaces(${PROJECT_NAME} HAS_LIBRARY_TARGET)
