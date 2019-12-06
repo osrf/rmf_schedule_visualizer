@@ -37,7 +37,8 @@ std::shared_ptr<VisualizerDataNode> VisualizerDataNode::make(
 
   // Creating a mirror manager that queries over all Spacetime in the database schedule 
   auto mirror_mgr_future = rmf_traffic_ros2::schedule::make_mirror(
-        *visualizer_data, rmf_traffic::schedule::query_everything().spacetime());
+        *visualizer_data, rmf_traffic::schedule::query_everything().spacetime(),
+        &visualizer_data->_mutex);
 
   const auto stop_time = start_time + wait_time;
   while(rclcpp::ok() && std::chrono::steady_clock::now() < stop_time)
@@ -152,8 +153,7 @@ std::vector<rmf_traffic::Trajectory> VisualizerDataNode::get_trajectories(Reques
   const auto query = rmf_traffic::schedule::make_query(
       maps, &request_param.start_time,
       &request_param.finish_time);
-  
-  std::lock_guard<std::mutex> guard(_mutex);
+
   const auto view = data->mirror.viewer().query(query);
   for (const auto& element : view)
     trajectories.push_back(element.trajectory);
@@ -168,8 +168,7 @@ std::vector<Element> VisualizerDataNode::get_elements(RequestParam request_param
   const auto query = rmf_traffic::schedule::make_query(
       maps, &request_param.start_time,
       &request_param.finish_time);
-  
-  std::lock_guard<std::mutex> guard(_mutex);
+
   const auto view = data->mirror.viewer().query(query);
 
   for (const auto& element : view)
@@ -182,6 +181,12 @@ std::vector<Element> VisualizerDataNode::get_elements(RequestParam request_param
 rmf_traffic::Time VisualizerDataNode::now()
 {
   return rmf_traffic_ros2::convert(get_clock()->now());
+}
+
+//==============================================================================
+std::mutex& VisualizerDataNode::get_mutex()
+{
+  return _mutex;
 }
 
 } // namespace rmf_schedule_visualizer

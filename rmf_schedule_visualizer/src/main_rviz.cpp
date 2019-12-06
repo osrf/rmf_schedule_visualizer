@@ -77,7 +77,7 @@ public:
           rclcpp::QoS(10),
           [&](ScheduleConflict::SharedPtr msg)
           {
-            std::lock_guard<std::mutex> guard(_mutex);
+            std::lock_guard<std::mutex> guard(_visualizer_data_node.get_mutex());
             _conflict_id.clear();
             for (const auto& i : msg->indices)
               _conflict_id.push_back(i);
@@ -93,7 +93,7 @@ public:
           rclcpp::QoS(10),
           [&](RvizParamMsg::SharedPtr msg)
           {
-            std::lock_guard<std::mutex> guard(_mutex);
+            std::lock_guard<std::mutex> guard(_visualizer_data_node.get_mutex());
 
             if (!msg->map_name.empty())
               _rviz_param.map_name = msg->map_name;
@@ -116,7 +116,7 @@ private:
 
     // TODO store a cache of trajectories to prevent frequent access
     // update chache whenever mirror manager updates 
-    std::lock_guard<std::mutex> guard(_mutex);
+    std::lock_guard<std::mutex> guard(_visualizer_data_node.get_mutex());
 
     RequestParam query_param;
     query_param.map_name = _rviz_param.map_name;
@@ -324,13 +324,17 @@ private:
     };
 
     auto it = trajectory.find(start_time);
+    assert(it != trajectory.end());
+    assert(trajectory.find(end_time) != trajectory.end());
     const auto motion = it->compute_motion();
     marker_msg.points.push_back(
           make_point(motion->compute_position(start_time)));
 
     for (; it <= trajectory.find(end_time); it++)
     {
-      marker_msg.points.push_back(make_point(it->get_finish_position()));
+      assert(it != trajectory.end());
+      const Eigen::Vector3d p = it->get_finish_position();
+      marker_msg.points.push_back(make_point(p));
     }
 
     return marker_msg;
@@ -402,7 +406,6 @@ private:
   rclcpp::Subscription<RvizParamMsg>::SharedPtr _param_sub;
   rclcpp::callback_group::CallbackGroup::SharedPtr _cb_group_param_sub;
   rmf_schedule_visualizer::VisualizerDataNode& _visualizer_data_node;
-  std::mutex _mutex;
 
   RvizParam _rviz_param;
 };
