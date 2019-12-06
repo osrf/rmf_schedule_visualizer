@@ -57,6 +57,8 @@ public:
 
   rmf_traffic::Time now();
 
+  std::mutex& get_mutex();
+
 private:
   struct Data
   {
