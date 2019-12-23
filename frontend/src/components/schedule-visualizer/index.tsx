@@ -9,15 +9,13 @@ import produce from 'immer'
 import * as L from 'leaflet'
 import styled from 'styled-components'
 
-import 'leaflet/dist/leaflet.css'
+import { IFloor as _IFloor } from '../../models/Floor'
+import { IAffineImage as _IAffineImage } from '../../models/AffineImage'
+import { getFloors } from '../../mock'
+import { rawCompressedSVGToSVGSVGElement, SVGSVGElementToDataURI } from '../../util'
 
-import { IFloor as _IFloor } from '../models/Floor'
-import { IAffineImage as _IAffineImage } from '../models/AffineImage'
-import { getFloors } from '../mock'
-import { rawCompressedSVGToSVGSVGElement, SVGSVGElementToDataURI } from '../util'
-
-import ScheduleVisualizerServerDateControl from './ScheduleVisualizerServerDateControl'
-import ScheduleVisualizerSliderControl from './ScheduleVisualizerSliderControl'
+import ServerDateControl from './server-date-control'
+import SliderControl from './slider-control'
 
 const { BaseLayer } = LayersControl
 
@@ -111,7 +109,7 @@ export default function ScheduleVisualizer() {
       maxBounds={maxBounds}
     >
       <AttributionControl position="bottomright" prefix="OSRC-SG" />
-      <ScheduleVisualizerServerDateControl date={date} position="topright" />
+      <ServerDateControl date={date} position="topright" />
       <LayersControl position="topright">
         {
           floors.map((floor, i) => (
@@ -121,7 +119,7 @@ export default function ScheduleVisualizer() {
           ))
         }
       </LayersControl>
-      <ScheduleVisualizerSliderControl />
+      <SliderControl />
     </Map>
   )
 }

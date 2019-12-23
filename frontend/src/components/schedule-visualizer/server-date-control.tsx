@@ -22,7 +22,7 @@ export interface Props extends MapControlProps {
   date: Date
 }
 
-function ScheduleVisualizerServerDateControl({ date }: Props) {
+function ServerDateControl({ date }: Props) {
   return (
     <Control>
       <ServerDate title="Server Time">
@@ -32,4 +32,4 @@ function ScheduleVisualizerServerDateControl({ date }: Props) {
   )
 }
 
-export default withLeaflet(ScheduleVisualizerServerDateControl)
+export default withLeaflet(ServerDateControl)

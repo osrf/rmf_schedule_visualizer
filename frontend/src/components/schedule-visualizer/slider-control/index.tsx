@@ -3,6 +3,14 @@ import Control from 'react-leaflet-control'
 
 import styled from 'styled-components/macro'
 
+const DURATION_MINS = 120
+const NOW_POSITION_MINS = 90
+const DURATION = DURATION_MINS * 60 * 1000
+const NOW_POSITION_PERCENT = NOW_POSITION_MINS / DURATION_MINS * 100
+const MARKER_MINUTE_WIDTH = 1
+const MARKER_MINUTE_HEIGHT = 20
+const MARKER_NOW_WIDTH = 2
+const MARKER_NOW_HEIGHT = 50
 const CONTROL_BUTTON_WIDTH = 30
 const CONTROL_BUTTON_HEIGHT = 30
 const CONTROL_BUTTON_BOTTOM = 15
@@ -92,7 +100,7 @@ const KnobWrapper = styled.div`
   left: 0%;
   width: 100%;
   height: ${KNOB_WRAPPER_HEIGHT}px;
-  top: calc(${-(KNOB_WRAPPER_HEIGHT - SLIDER_HEIGHT)}px / 2);
+  top: calc(${SLIDER_HEIGHT - KNOB_WRAPPER_HEIGHT}px / 2);
   z-index: 3;
 `
 
@@ -102,6 +110,32 @@ const LeftKnob = styled(Knob)`
 
 const RightKnob = styled(Knob)`
   left: 100%;
+`
+
+const MarkersWrapper = styled.div`
+  position: absolute;
+  width: 100%;
+  top: calc(${SLIDER_HEIGHT}px / 2);
+`
+
+const MarkerBase = styled.div`
+  position: absolute;
+  background: grey;
+  z-index: -1;
+`
+
+const MarkerMinute = styled(MarkerBase)`
+  width: ${MARKER_MINUTE_WIDTH}px;
+  height: ${MARKER_MINUTE_HEIGHT}px;
+  top: calc(-${MARKER_MINUTE_HEIGHT}px / 2);
+`
+
+const MarkerNow = styled(MarkerBase)`
+  background: red;
+  left: ${NOW_POSITION_PERCENT}%;
+  width: ${MARKER_NOW_WIDTH}px;
+  height: ${MARKER_NOW_HEIGHT}px;
+  top: calc(-${MARKER_NOW_HEIGHT}px / 2);
 `
 
 export interface Props {
@@ -126,6 +160,7 @@ export interface SliderInfo {
 
 export interface KnobRefs {
   left: React.RefObject<HTMLDivElement>
+  center: React.RefObject<HTMLDivElement>,
   right: React.RefObject<HTMLDivElement>
 }
 
@@ -134,8 +169,11 @@ function useSlider(
 ): [KnobRefs, SliderInfo] {
   const knobRefs: KnobRefs = {
     left: React.useRef<HTMLDivElement>(null),
+    center: React.useRef<HTMLDivElement>(null),
     right: React.useRef<HTMLDivElement>(null),
   }
+
+  // TODO: Make center knob work
   const { current: leftKnobElement } = knobRefs.left
   const { current: rightKnobElement } = knobRefs.right
   const { current: dimensions } = dimensionsRef
@@ -149,7 +187,6 @@ function useSlider(
 
     let { clientX: mouseCurrentX } = event
     const { viewportMinX, maxWidth } = dimensions
-    console.log(`${mouseCurrentX}, ${viewportMinX}`)
     mouseCurrentX += KNOB_WIDTH / 2
 
     let min = ((mouseCurrentX - viewportMinX) / maxWidth) * 100
@@ -290,8 +327,9 @@ function useKnobControlDimensions(
   return [sliderRef, dimensionsRef]
 }
 
-export default function ScheduleVisualizerSliderControl() {
-  const [playing, setPlaying] = React.useState(false);
+export default function SliderControl() {
+  const [playing, setPlaying] = React.useState(false)
+  const markerMinuteRef = React.useRef<JSX.Element[]>([])
 
   const [sliderRef, dimensionsRef] = useKnobControlDimensions()
   const [knobRefs, sliderInfo] = useSlider(dimensionsRef)
@@ -308,12 +346,30 @@ export default function ScheduleVisualizerSliderControl() {
     setPlaying(!playing)
   }
 
+  function renderMarkerMinutes() {
+    const { current: markers } = markerMinuteRef
+    if (!markers.length) {
+      for (let i = 0; i <= DURATION_MINS; ++i) {
+        const leftPercent = i / DURATION_MINS * 100
+        markers.push(<MarkerMinute key={i} style={{ left: `${leftPercent}%`}}></MarkerMinute>)
+      }
+    }
+    return markers
+  }
+
   return (
     <Control position="bottomcenter">
       <RewindControlButton />
       <SliderExtensionLeft />
       <Slider ref={sliderRef}>
+        <MarkersWrapper>
+          {
+            renderMarkerMinutes()
+          }
+          <MarkerNow title="Now"/>
+        </MarkersWrapper>
         <KnobWrapper
+          ref={knobRefs.center}
           style={{
             left: `${min}%`,
             width: `${max - min}%`,
