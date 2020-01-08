@@ -1,0 +1,30 @@
+name: build
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    container:
+      image: docker://ros:eloquent-ros-base-bionic
+      
+    steps:
+    - name: deps
+      run: |
+        sudo apt update
+        # rmf_core and traffic_editor dependencies
+        sudo apt-get install libeigen3-dev libccd-dev libfcl-dev libyaml-cpp-dev -y
+        # rmf_schedule_visualizer dependencies
+        sudo apt-get install ros-eloquent-rviz2 libwebsocketpp-dev libboost-all-dev -y
+    - name: setup
+      run: |
+        cd /home/
+        mkdir -p ws_rmf/src
+        cd ws_rmf/src
+        git clone https://github.com/osrf/traffic_editor
+        git clone https://github.com/osrf/rmf_core
+        git clone https://github.com/osrf/rmf_schedule_visualizer        
+    - name: build
+      shell: bash
+      run: |
+        cd /home/ws_rmf
+        source /opt/ros/eloquent/setup.bash
+        colcon build --packages-up-to rmf_schedule_visualizer fleet_state_visualizer rviz2_plugin
