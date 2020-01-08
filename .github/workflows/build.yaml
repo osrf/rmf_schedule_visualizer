@@ -1,0 +1,27 @@
+name: build
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    container:
+      image: docker://ros:eloquent-ros-base-bionic
+      
+    steps:
+    - name: deps
+      run: |
+        sudo apt update
+    - name: setup
+      run: |
+        cd /home/
+        mkdir -p ws_rmf/src
+        cd ws_rmf/src
+        git clone https://github.com/osrf/traffic_editor
+        git clone https://github.com/osrf/rmf_core
+        git clone https://github.com/osrf/rmf_schedule_visualizer        
+    - name: build
+      shell: bash
+      run: |
+        cd /home/ws_rmf
+        source /opt/ros/eloquent/setup.bash
+        colcon build --packages-up-to rmf_schedule_visualizer
+        colcon build --packages-up-to fleet_state_visualizer
