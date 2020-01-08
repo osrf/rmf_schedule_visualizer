@@ -1,14 +1,13 @@
-import React from 'react'
+import React, { DetailedHTMLProps, HTMLAttributes } from 'react'
 import Control from 'react-leaflet-control'
 
-import styled from 'styled-components/macro'
+import styled, { ThemedStyledProps } from 'styled-components/macro'
+import { ClockSecondEvent } from '../../../clock'
 
 const DURATION_MINS = 120
 const NOW_POSITION_MINS = 90
-const DURATION = DURATION_MINS * 60 * 1000
+const DURATION = DURATION_MINS * 60 * 100
 const NOW_POSITION_PERCENT = NOW_POSITION_MINS / DURATION_MINS * 100
-const MARKER_MINUTE_WIDTH = 1
-const MARKER_MINUTE_HEIGHT = 20
 const MARKER_NOW_WIDTH = 2
 const MARKER_NOW_HEIGHT = 50
 const CONTROL_BUTTON_WIDTH = 30
@@ -22,6 +21,7 @@ const SLIDER_BORDER_WIDTH = 2
 const KNOB_WIDTH = 10
 const KNOB_HEIGHT = 20
 const KNOB_WRAPPER_HEIGHT = 8
+const KNOB_LABEL_WIDTH = 80
 
 const ControlButton = styled.div`
   position: absolute;
@@ -83,8 +83,6 @@ const SliderExtensionRight = styled(SliderExtensionBase)`
 
 const Knob = styled.div`
   position: absolute;
-  background: #fff;
-  box-shadow: 0 0 2px;
   cursor: pointer;
   width: ${KNOB_WIDTH}px;
   height: ${KNOB_HEIGHT}px;
@@ -94,7 +92,7 @@ const Knob = styled.div`
 
 const KnobWrapper = styled.div`
   position: absolute;
-  background: #fff;
+  background: #888;
   box-shadow: 0 0 2px;
   cursor: pointer;
   left: 0%;
@@ -105,11 +103,43 @@ const KnobWrapper = styled.div`
 `
 
 const LeftKnob = styled(Knob)`
+  width: 0;
+  height: 0;
+  border-top: ${KNOB_WIDTH}px solid transparent;
+  border-bottom: ${KNOB_WIDTH}px solid transparent;
+  border-right: calc(${KNOB_HEIGHT}px / 2) solid #888;
   left: calc(0% - ${KNOB_WIDTH}px);
 `
 
 const RightKnob = styled(Knob)`
+  width: 0;
+  height: 0;
+  border-top: ${KNOB_WIDTH}px solid transparent;
+  border-bottom: ${KNOB_WIDTH}px solid transparent;
+  border-left: calc(${KNOB_HEIGHT}px / 2) solid #888;
   left: 100%;
+`
+
+const KnobLabel = styled.div.attrs((props: KnobLabelProps) => ({
+  'data-fade': props['data-fade'] || false,
+}))`
+  text-align: center;
+  position: absolute;
+  border-radius: 5px;
+  padding: 0 5px 0 5px;
+  width: ${KNOB_LABEL_WIDTH}px;
+  height: 20px;
+  background: #aaa;
+  top: -40px;
+  opacity: ${props => props['data-fade'] ? "0.5": "1"};
+`
+
+const LeftKnobLabel = styled(KnobLabel)`
+  left: calc((${KNOB_WIDTH}px / 2) - (${KNOB_LABEL_WIDTH}px / 2));
+`
+
+const RightKnobLabel = styled(KnobLabel)`
+  right: calc((${KNOB_WIDTH}px / 2) - (${KNOB_LABEL_WIDTH}px / 2));
 `
 
 const MarkersWrapper = styled.div`
@@ -124,12 +154,6 @@ const MarkerBase = styled.div`
   z-index: -1;
 `
 
-const MarkerMinute = styled(MarkerBase)`
-  width: ${MARKER_MINUTE_WIDTH}px;
-  height: ${MARKER_MINUTE_HEIGHT}px;
-  top: calc(-${MARKER_MINUTE_HEIGHT}px / 2);
-`
-
 const MarkerNow = styled(MarkerBase)`
   background: red;
   left: ${NOW_POSITION_PERCENT}%;
@@ -137,6 +161,10 @@ const MarkerNow = styled(MarkerBase)`
   height: ${MARKER_NOW_HEIGHT}px;
   top: calc(-${MARKER_NOW_HEIGHT}px / 2);
 `
+
+export interface KnobLabelProps extends ThemedStyledProps<DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>, any> {
+  'data-fade': boolean,
+}
 
 export interface Props {
 }
@@ -158,15 +186,24 @@ export interface SliderInfo {
   max: number
 }
 
+export interface CachedSliderInfo {
+  min: React.RefObject<number>
+}
+
 export interface KnobRefs {
   left: React.RefObject<HTMLDivElement>
-  center: React.RefObject<HTMLDivElement>,
+  center: React.RefObject<HTMLDivElement>
   right: React.RefObject<HTMLDivElement>
+}
+
+export interface KnobLabelInfo {
+  leftHidden: boolean;
+  rightHidden: boolean;
 }
 
 function useSlider(
   dimensionsRef: React.RefObject<KnobControlDimensions>
-): [KnobRefs, SliderInfo] {
+): [KnobRefs, SliderInfo, KnobLabelInfo] {
   const knobRefs: KnobRefs = {
     left: React.useRef<HTMLDivElement>(null),
     center: React.useRef<HTMLDivElement>(null),
@@ -181,6 +218,8 @@ function useSlider(
   const cachedMax = React.useRef(100)
   const [min, setMin] = React.useState(0)
   const [max, setMax] = React.useState(100)
+  const [leftKnobLabelHidden, setLeftKnobLabelHidden] = React.useState(true);
+  const [rightKnobLabelHidden, setRightKnobLabelHidden] = React.useState(true);
 
   const onLeftKnobAdjust = React.useCallback((event: MouseEvent) => {
     if (!dimensions) return
@@ -199,6 +238,7 @@ function useSlider(
 
     cachedMin.current = min
     setMin(min)
+    setLeftKnobLabelHidden(false);
   }, [dimensions, cachedMax])
 
   const onMouseMoveWhileLeftKnobDown = React.useCallback((event: MouseEvent) => {
@@ -217,6 +257,7 @@ function useSlider(
     } else {
       onLeftKnobAdjust(event)
     }
+    setLeftKnobLabelHidden(true);
     window.removeEventListener('mousemove', onMouseMoveWhileLeftKnobDown)
     window.removeEventListener('mouseup', onLeftKnobMouseUpOrBlur)
     window.removeEventListener('blur', onLeftKnobMouseUpOrBlur)
@@ -248,6 +289,7 @@ function useSlider(
 
     cachedMax.current = max
     setMax(max)
+    setRightKnobLabelHidden(false)
   }, [dimensions, cachedMin])
 
   const onMouseMoveWhileRightKnobDown = React.useCallback((event: MouseEvent) => {
@@ -266,6 +308,7 @@ function useSlider(
     } else {
       onRightKnobAdjust(event)
     }
+    setRightKnobLabelHidden(true)
     window.removeEventListener('mousemove', onMouseMoveWhileRightKnobDown)
     window.removeEventListener('mouseup', onRightKnobMouseUpOrBlur)
     window.removeEventListener('blur', onRightKnobMouseUpOrBlur)
@@ -292,7 +335,7 @@ function useSlider(
     }
   }, [rightKnobElement, onRightKnobMouseDown])
 
-  return [knobRefs, {min, max}]
+  return [knobRefs, {min, max}, {leftHidden: leftKnobLabelHidden, rightHidden: rightKnobLabelHidden}]
 }
 
 function useKnobControlDimensions(
@@ -327,13 +370,47 @@ function useKnobControlDimensions(
   return [sliderRef, dimensionsRef]
 }
 
+function useDateRange(minPercent: number, maxPercent: number) {
+  const [minDate, setMinDate] = React.useState<Date|null>(null)
+  const [maxDate, setMaxDate] = React.useState<Date|null>(null)
+  const cachedMinDate = React.useRef(new Date())
+  const cachedMaxDate = React.useRef(new Date())
+  const cachedTimeNow = React.useRef(cachedMinDate.current.getTime())
+  const minTimeDiffMS = React.useRef(((NOW_POSITION_PERCENT - 0) / 100) * DURATION)
+  const maxTimeDiffMS = React.useRef(((NOW_POSITION_PERCENT + 100) / 100) * DURATION)
+
+  React.useEffect(() => {
+    window.addEventListener('onclocksecond', (event: ClockSecondEvent) => {
+      if (!event.date) return
+      cachedTimeNow.current = event.date.getTime()
+      cachedMinDate.current.setTime(cachedTimeNow.current - minTimeDiffMS.current)
+      cachedMaxDate.current.setTime(cachedTimeNow.current - maxTimeDiffMS.current)
+      setMinDate(cachedMinDate.current)
+      setMaxDate(cachedMaxDate.current)
+    })
+  }, [])
+
+  React.useEffect(() => {
+    minTimeDiffMS.current = ((NOW_POSITION_PERCENT - minPercent) / 100) * DURATION
+    maxTimeDiffMS.current = ((NOW_POSITION_PERCENT + maxPercent) / 100) * DURATION
+    cachedMinDate.current.setTime(cachedTimeNow.current - minTimeDiffMS.current)
+    cachedMaxDate.current.setTime(cachedTimeNow.current - maxTimeDiffMS.current)
+
+    setMinDate(cachedMinDate.current)
+    setMaxDate(cachedMaxDate.current)
+  }, [minPercent, maxPercent])
+
+  return [minDate, maxDate]
+}
+
 export default function SliderControl() {
   const [playing, setPlaying] = React.useState(false)
-  const markerMinuteRef = React.useRef<JSX.Element[]>([])
 
   const [sliderRef, dimensionsRef] = useKnobControlDimensions()
-  const [knobRefs, sliderInfo] = useSlider(dimensionsRef)
+  const [knobRefs, sliderInfo, knobLabelInfo] = useSlider(dimensionsRef)
+  const {leftHidden: leftKnobLabelHidden, rightHidden: rightKnobLabelHidden} = knobLabelInfo;
   const {min, max} = sliderInfo
+  const [minDate, maxDate] = useDateRange(min, max)
 
   function getPlayPauseControlURL() {
     if (playing) {
@@ -346,26 +423,12 @@ export default function SliderControl() {
     setPlaying(!playing)
   }
 
-  function renderMarkerMinutes() {
-    const { current: markers } = markerMinuteRef
-    if (!markers.length) {
-      for (let i = 0; i <= DURATION_MINS; ++i) {
-        const leftPercent = i / DURATION_MINS * 100
-        markers.push(<MarkerMinute key={i} style={{ left: `${leftPercent}%`}}></MarkerMinute>)
-      }
-    }
-    return markers
-  }
-
   return (
     <Control position="bottomcenter">
       <RewindControlButton />
       <SliderExtensionLeft />
       <Slider ref={sliderRef}>
         <MarkersWrapper>
-          {
-            renderMarkerMinutes()
-          }
           <MarkerNow title="Now"/>
         </MarkersWrapper>
         <KnobWrapper
@@ -377,10 +440,18 @@ export default function SliderControl() {
         >
           <LeftKnob
             ref={knobRefs.left}
-          />
+          >
+            <LeftKnobLabel data-fade={leftKnobLabelHidden}>
+              {minDate ? minDate.toLocaleTimeString(): ''}
+            </LeftKnobLabel>
+          </LeftKnob>
           <RightKnob
             ref={knobRefs.right}
-          />
+          >
+            <RightKnobLabel data-fade={rightKnobLabelHidden}>
+              {maxDate ? maxDate.toLocaleTimeString(): ''}
+            </RightKnobLabel>
+          </RightKnob>
         </KnobWrapper>
       </Slider>
       <SliderExtensionRight />

@@ -16,6 +16,7 @@ import { rawCompressedSVGToSVGSVGElement, SVGSVGElementToDataURI } from '../../u
 
 import ServerDateControl from './server-date-control'
 import SliderControl from './slider-control'
+import { ClockSecondEvent } from '../../clock'
 
 const { BaseLayer } = LayersControl
 
@@ -53,13 +54,10 @@ export default function ScheduleVisualizer() {
   const [date, setDate] = React.useState(new Date())
 
   React.useEffect(() => {
-    const clockIntervalID = setInterval(() => {
-      setDate(new Date())
-    }, 1000)
-
-    return function cleanup() {
-      clearInterval(clockIntervalID);
-    }
+    window.addEventListener('onclocksecond', (event: ClockSecondEvent) => {
+      if (!event.date) return
+      setDate(event.date)
+    })
   }, []);
 
   React.useEffect(() => {
