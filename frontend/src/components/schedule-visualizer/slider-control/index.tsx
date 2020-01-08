@@ -22,6 +22,8 @@ const KNOB_WIDTH = 10
 const KNOB_HEIGHT = 20
 const KNOB_WRAPPER_HEIGHT = 8
 const KNOB_LABEL_WIDTH = 80
+const KNOB_MIN_INIT_PERCENT = 20
+const KNOB_MAX_INIT_PERCENT = 80
 
 const ControlButton = styled.div`
   position: absolute;
@@ -128,9 +130,8 @@ const KnobLabel = styled.div.attrs((props: KnobLabelProps) => ({
   border-radius: 5px;
   padding: 0 5px 0 5px;
   width: ${KNOB_LABEL_WIDTH}px;
-  height: 20px;
   background: #aaa;
-  top: -40px;
+  top: -60px;
   opacity: ${props => props['data-fade'] ? "0.5": "1"};
 `
 
@@ -197,8 +198,18 @@ export interface KnobRefs {
 }
 
 export interface KnobLabelInfo {
-  leftHidden: boolean;
-  rightHidden: boolean;
+  leftHidden: boolean
+  rightHidden: boolean
+}
+
+export interface DateRange {
+  min: Date
+  max: Date
+}
+
+export interface TimeDiffs {
+  min: number
+  max: number
 }
 
 function useSlider(
@@ -214,10 +225,10 @@ function useSlider(
   const { current: leftKnobElement } = knobRefs.left
   const { current: rightKnobElement } = knobRefs.right
   const { current: dimensions } = dimensionsRef
-  const cachedMin = React.useRef(0)
-  const cachedMax = React.useRef(100)
-  const [min, setMin] = React.useState(0)
-  const [max, setMax] = React.useState(100)
+  const cachedMin = React.useRef(KNOB_MIN_INIT_PERCENT)
+  const cachedMax = React.useRef(KNOB_MAX_INIT_PERCENT)
+  const [min, setMin] = React.useState(KNOB_MIN_INIT_PERCENT)
+  const [max, setMax] = React.useState(KNOB_MAX_INIT_PERCENT)
   const [leftKnobLabelHidden, setLeftKnobLabelHidden] = React.useState(true);
   const [rightKnobLabelHidden, setRightKnobLabelHidden] = React.useState(true);
 
@@ -370,37 +381,58 @@ function useKnobControlDimensions(
   return [sliderRef, dimensionsRef]
 }
 
-function useDateRange(minPercent: number, maxPercent: number) {
-  const [minDate, setMinDate] = React.useState<Date|null>(null)
-  const [maxDate, setMaxDate] = React.useState<Date|null>(null)
+function useDateRange(sliderInfo: SliderInfo): [DateRange, TimeDiffs] {
+  const {min: minPercent, max: maxPercent} = sliderInfo;
+  const [minDate, setMinDate] = React.useState<Date>(new Date())
+  const [maxDate, setMaxDate] = React.useState<Date>(new Date())
   const cachedMinDate = React.useRef(new Date())
   const cachedMaxDate = React.useRef(new Date())
   const cachedTimeNow = React.useRef(cachedMinDate.current.getTime())
-  const minTimeDiffMS = React.useRef(((NOW_POSITION_PERCENT - 0) / 100) * DURATION)
-  const maxTimeDiffMS = React.useRef(((NOW_POSITION_PERCENT + 100) / 100) * DURATION)
+  const cachedMinTimeDiffMS = React.useRef(((NOW_POSITION_PERCENT - KNOB_MIN_INIT_PERCENT) / 100) * DURATION)
+  const cachedMaxTimeDiffMS = React.useRef(((KNOB_MAX_INIT_PERCENT - NOW_POSITION_PERCENT) / 100) * DURATION)
+  const [minTimeDiffMS, setMinTimeDiffMS] = React.useState(cachedMinTimeDiffMS.current)
+  const [maxTimeDiffMS, setMaxTimeDiffMS] = React.useState(cachedMaxTimeDiffMS.current)
 
   React.useEffect(() => {
     window.addEventListener('onclocksecond', (event: ClockSecondEvent) => {
       if (!event.date) return
       cachedTimeNow.current = event.date.getTime()
-      cachedMinDate.current.setTime(cachedTimeNow.current - minTimeDiffMS.current)
-      cachedMaxDate.current.setTime(cachedTimeNow.current - maxTimeDiffMS.current)
+      cachedMinDate.current.setTime(cachedTimeNow.current - cachedMinTimeDiffMS.current)
+      cachedMaxDate.current.setTime(cachedTimeNow.current + cachedMaxTimeDiffMS.current)
+
+      setMinTimeDiffMS(cachedMinTimeDiffMS.current)
+      setMaxTimeDiffMS(cachedMaxTimeDiffMS.current)
       setMinDate(cachedMinDate.current)
       setMaxDate(cachedMaxDate.current)
     })
   }, [])
 
   React.useEffect(() => {
-    minTimeDiffMS.current = ((NOW_POSITION_PERCENT - minPercent) / 100) * DURATION
-    maxTimeDiffMS.current = ((NOW_POSITION_PERCENT + maxPercent) / 100) * DURATION
-    cachedMinDate.current.setTime(cachedTimeNow.current - minTimeDiffMS.current)
-    cachedMaxDate.current.setTime(cachedTimeNow.current - maxTimeDiffMS.current)
+    cachedMinTimeDiffMS.current = ((NOW_POSITION_PERCENT - minPercent) / 100) * DURATION
+    cachedMaxTimeDiffMS.current = ((maxPercent - NOW_POSITION_PERCENT) / 100) * DURATION
+    cachedMinDate.current.setTime(cachedTimeNow.current - cachedMinTimeDiffMS.current)
+    cachedMaxDate.current.setTime(cachedTimeNow.current + cachedMaxTimeDiffMS.current)
 
+    setMinTimeDiffMS(cachedMinTimeDiffMS.current)
+    setMaxTimeDiffMS(cachedMaxTimeDiffMS.current)
     setMinDate(cachedMinDate.current)
     setMaxDate(cachedMaxDate.current)
   }, [minPercent, maxPercent])
 
-  return [minDate, maxDate]
+  return [{min: minDate, max: maxDate}, {min: minTimeDiffMS, max: maxTimeDiffMS}]
+}
+
+function useTimeDiffsFormat(timeDiffs: TimeDiffs, decimalPlaces: number) {
+  const {min: minDiff, max: maxDiff} = timeDiffs;
+  const [minTimeString, setMinTimeString] = React.useState(minDiff.toFixed(decimalPlaces))
+  const [maxTimeString, setMaxTimeString] = React.useState(maxDiff.toFixed(decimalPlaces))
+
+  React.useEffect(() => {
+    setMinTimeString((-minDiff / 100).toFixed(decimalPlaces))
+    setMaxTimeString((maxDiff / 100).toFixed(decimalPlaces))
+  }, [minDiff, maxDiff])
+
+  return [minTimeString, maxTimeString, decimalPlaces]
 }
 
 export default function SliderControl() {
@@ -408,9 +440,11 @@ export default function SliderControl() {
 
   const [sliderRef, dimensionsRef] = useKnobControlDimensions()
   const [knobRefs, sliderInfo, knobLabelInfo] = useSlider(dimensionsRef)
+  const [dateRange, timeDiffs] = useDateRange(sliderInfo)
+  const [minDiffTimeString, maxDiffTimeString] = useTimeDiffsFormat(timeDiffs, 2)
   const {leftHidden: leftKnobLabelHidden, rightHidden: rightKnobLabelHidden} = knobLabelInfo;
   const {min, max} = sliderInfo
-  const [minDate, maxDate] = useDateRange(min, max)
+  const {min: minDate, max: maxDate} = dateRange
 
   function getPlayPauseControlURL() {
     if (playing) {
@@ -442,14 +476,16 @@ export default function SliderControl() {
             ref={knobRefs.left}
           >
             <LeftKnobLabel data-fade={leftKnobLabelHidden}>
-              {minDate ? minDate.toLocaleTimeString(): ''}
+              {minDate.toLocaleTimeString()} <br />
+              {minDiffTimeString} secs
             </LeftKnobLabel>
           </LeftKnob>
           <RightKnob
             ref={knobRefs.right}
           >
             <RightKnobLabel data-fade={rightKnobLabelHidden}>
-              {maxDate ? maxDate.toLocaleTimeString(): ''}
+              {maxDate.toLocaleTimeString()} <br />
+              {maxDiffTimeString} secs
             </RightKnobLabel>
           </RightKnob>
         </KnobWrapper>
