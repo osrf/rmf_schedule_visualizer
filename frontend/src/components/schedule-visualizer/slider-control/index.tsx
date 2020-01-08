@@ -433,8 +433,8 @@ function useTimeDiffsFormat(timeDiffs: TimeDiffs, decimalPlaces: number) {
   const [maxTimeString, setMaxTimeString] = React.useState(maxDiff.toFixed(decimalPlaces))
 
   React.useEffect(() => {
-    setMinTimeString((minDiff / 100).toFixed(decimalPlaces))
-    setMaxTimeString((maxDiff / 100).toFixed(decimalPlaces))
+    setMinTimeString((minDiff / 1000).toFixed(decimalPlaces))
+    setMaxTimeString((maxDiff / 1000).toFixed(decimalPlaces))
   }, [minDiff, maxDiff, decimalPlaces])
 
   return [minTimeString, maxTimeString]
