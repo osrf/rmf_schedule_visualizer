@@ -6,8 +6,8 @@ import { ClockSecondEvent } from '../../../clock'
 
 const DURATION_MINS = 120
 const NOW_POSITION_MINS = 90
-const DURATION = DURATION_MINS * 60 * 100
-const NOW_POSITION_PERCENT = NOW_POSITION_MINS / DURATION_MINS * 100
+const DURATION = DURATION_MINS * 60 * 1000
+const NOW_POSITION_PERCENT = (NOW_POSITION_MINS / DURATION_MINS) * 100
 const MARKER_NOW_WIDTH = 2
 const MARKER_NOW_HEIGHT = 50
 const CONTROL_BUTTON_WIDTH = 30
@@ -24,6 +24,8 @@ const KNOB_WRAPPER_HEIGHT = 8
 const KNOB_LABEL_WIDTH = 80
 const KNOB_MIN_INIT_PERCENT = 20
 const KNOB_MAX_INIT_PERCENT = 80
+
+console.log(DURATION)
 
 const ControlButton = styled.div`
   position: absolute;
@@ -381,6 +383,10 @@ function useKnobControlDimensions(
   return [sliderRef, dimensionsRef]
 }
 
+function percentDiffToDurationDiff(percentDiff: number) {
+  return ((percentDiff - NOW_POSITION_PERCENT) / 100) * DURATION
+}
+
 function useDateRange(sliderInfo: SliderInfo): [DateRange, TimeDiffs] {
   const {min: minPercent, max: maxPercent} = sliderInfo;
   const [minDate, setMinDate] = React.useState<Date>(new Date())
@@ -388,8 +394,8 @@ function useDateRange(sliderInfo: SliderInfo): [DateRange, TimeDiffs] {
   const cachedMinDate = React.useRef(new Date())
   const cachedMaxDate = React.useRef(new Date())
   const cachedTimeNow = React.useRef(cachedMinDate.current.getTime())
-  const cachedMinTimeDiffMS = React.useRef(((NOW_POSITION_PERCENT - KNOB_MIN_INIT_PERCENT) / 100) * DURATION)
-  const cachedMaxTimeDiffMS = React.useRef(((KNOB_MAX_INIT_PERCENT - NOW_POSITION_PERCENT) / 100) * DURATION)
+  const cachedMinTimeDiffMS = React.useRef(percentDiffToDurationDiff(KNOB_MIN_INIT_PERCENT))
+  const cachedMaxTimeDiffMS = React.useRef(percentDiffToDurationDiff(KNOB_MAX_INIT_PERCENT))
   const [minTimeDiffMS, setMinTimeDiffMS] = React.useState(cachedMinTimeDiffMS.current)
   const [maxTimeDiffMS, setMaxTimeDiffMS] = React.useState(cachedMaxTimeDiffMS.current)
 
@@ -397,24 +403,23 @@ function useDateRange(sliderInfo: SliderInfo): [DateRange, TimeDiffs] {
     window.addEventListener('onclocksecond', (event: ClockSecondEvent) => {
       if (!event.date) return
       cachedTimeNow.current = event.date.getTime()
-      cachedMinDate.current.setTime(cachedTimeNow.current - cachedMinTimeDiffMS.current)
+
+      cachedMinDate.current.setTime(cachedTimeNow.current + cachedMinTimeDiffMS.current)
       cachedMaxDate.current.setTime(cachedTimeNow.current + cachedMaxTimeDiffMS.current)
 
-      setMinTimeDiffMS(cachedMinTimeDiffMS.current)
-      setMaxTimeDiffMS(cachedMaxTimeDiffMS.current)
       setMinDate(cachedMinDate.current)
       setMaxDate(cachedMaxDate.current)
     })
   }, [])
 
   React.useEffect(() => {
-    cachedMinTimeDiffMS.current = ((NOW_POSITION_PERCENT - minPercent) / 100) * DURATION
-    cachedMaxTimeDiffMS.current = ((maxPercent - NOW_POSITION_PERCENT) / 100) * DURATION
-    cachedMinDate.current.setTime(cachedTimeNow.current - cachedMinTimeDiffMS.current)
-    cachedMaxDate.current.setTime(cachedTimeNow.current + cachedMaxTimeDiffMS.current)
-
+    cachedMinTimeDiffMS.current = percentDiffToDurationDiff(minPercent)
+    cachedMaxTimeDiffMS.current = percentDiffToDurationDiff(maxPercent)
     setMinTimeDiffMS(cachedMinTimeDiffMS.current)
     setMaxTimeDiffMS(cachedMaxTimeDiffMS.current)
+
+    cachedMinDate.current.setTime(cachedTimeNow.current + cachedMinTimeDiffMS.current)
+    cachedMaxDate.current.setTime(cachedTimeNow.current + cachedMaxTimeDiffMS.current)
     setMinDate(cachedMinDate.current)
     setMaxDate(cachedMaxDate.current)
   }, [minPercent, maxPercent])
@@ -428,11 +433,11 @@ function useTimeDiffsFormat(timeDiffs: TimeDiffs, decimalPlaces: number) {
   const [maxTimeString, setMaxTimeString] = React.useState(maxDiff.toFixed(decimalPlaces))
 
   React.useEffect(() => {
-    setMinTimeString((-minDiff / 100).toFixed(decimalPlaces))
+    setMinTimeString((minDiff / 100).toFixed(decimalPlaces))
     setMaxTimeString((maxDiff / 100).toFixed(decimalPlaces))
-  }, [minDiff, maxDiff])
+  }, [minDiff, maxDiff, decimalPlaces])
 
-  return [minTimeString, maxTimeString, decimalPlaces]
+  return [minTimeString, maxTimeString]
 }
 
 export default function SliderControl() {
