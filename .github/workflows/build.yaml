@@ -10,7 +10,10 @@ jobs:
     - name: deps
       run: |
         sudo apt update
-        sudo apt-get install libeigen3-dev
+        # rmf_core and traffic_editor dependencies
+        sudo apt-get install libeigen3-dev libccd-dev libfcl-dev libyaml-cpp-dev -y
+        # rmf_schedule_visualizer dependencies
+        sudo apt-get install ros-eloquent-rviz2 libwebsocketpp-dev libboost-all-dev -y
     - name: setup
       run: |
         cd /home/
