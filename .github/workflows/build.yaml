@@ -10,6 +10,7 @@ jobs:
     - name: deps
       run: |
         sudo apt update
+        sudo apt-get install libeigen3-dev
     - name: setup
       run: |
         cd /home/
@@ -23,5 +24,4 @@ jobs:
       run: |
         cd /home/ws_rmf
         source /opt/ros/eloquent/setup.bash
-        colcon build --packages-up-to rmf_schedule_visualizer
-        colcon build --packages-up-to fleet_state_visualizer
+        colcon build --packages-up-to rmf_schedule_visualizer fleet_state_visualizer rviz2_plugin
