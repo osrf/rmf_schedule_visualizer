@@ -204,7 +204,7 @@ export interface KnobLabelInfo {
   rightHidden: boolean
 }
 
-export interface DateRange {
+export interface TimeRange {
   min: number,
   max: number,
 }
@@ -387,7 +387,7 @@ function percentDiffToDurationDiff(percentDiff: number) {
   return ((percentDiff - NOW_POSITION_PERCENT) / 100) * DURATION
 }
 
-function useDateRange(sliderInfo: SliderInfo): [DateRange, TimeDiffs] {
+function useTimeRange(sliderInfo: SliderInfo): [TimeRange, TimeDiffs] {
   const {min: minPercent, max: maxPercent} = sliderInfo;
   const cachedTimeNow = React.useRef(Date.now())
   const [minTime, setMinTime] = React.useState(Date.now())
@@ -438,11 +438,11 @@ export default function SliderControl() {
 
   const [sliderRef, dimensionsRef] = useKnobControlDimensions()
   const [knobRefs, sliderInfo, knobLabelInfo] = useSlider(dimensionsRef)
-  const [dateRange, timeDiffs] = useDateRange(sliderInfo)
+  const [timeRange, timeDiffs] = useTimeRange(sliderInfo)
   const [minDiffTimeString, maxDiffTimeString] = useTimeDiffsFormat(timeDiffs, 2)
   const {leftHidden: leftKnobLabelHidden, rightHidden: rightKnobLabelHidden} = knobLabelInfo;
   const {min, max} = sliderInfo
-  const {min: minTime, max: maxTime} = dateRange
+  const {min: minTime, max: maxTime} = timeRange
 
   function getPlayPauseControlURL() {
     if (playing) {
