@@ -2,7 +2,7 @@ import React, { DetailedHTMLProps, HTMLAttributes } from 'react'
 import Control from 'react-leaflet-control'
 
 import styled, { ThemedStyledProps } from 'styled-components/macro'
-import { ClockSecondEvent } from '../../../clock'
+import { clockSource } from '../../..'
 
 const DURATION_MINS = 120
 const NOW_POSITION_MINS = 90
@@ -205,8 +205,8 @@ export interface KnobLabelInfo {
 }
 
 export interface DateRange {
-  min: Date
-  max: Date
+  min: number,
+  max: number,
 }
 
 export interface TimeDiffs {
@@ -389,42 +389,35 @@ function percentDiffToDurationDiff(percentDiff: number) {
 
 function useDateRange(sliderInfo: SliderInfo): [DateRange, TimeDiffs] {
   const {min: minPercent, max: maxPercent} = sliderInfo;
-  const [minDate, setMinDate] = React.useState<Date>(new Date())
-  const [maxDate, setMaxDate] = React.useState<Date>(new Date())
-  const cachedMinDate = React.useRef(new Date())
-  const cachedMaxDate = React.useRef(new Date())
-  const cachedTimeNow = React.useRef(cachedMinDate.current.getTime())
-  const cachedMinTimeDiffMS = React.useRef(percentDiffToDurationDiff(KNOB_MIN_INIT_PERCENT))
-  const cachedMaxTimeDiffMS = React.useRef(percentDiffToDurationDiff(KNOB_MAX_INIT_PERCENT))
-  const [minTimeDiffMS, setMinTimeDiffMS] = React.useState(cachedMinTimeDiffMS.current)
-  const [maxTimeDiffMS, setMaxTimeDiffMS] = React.useState(cachedMaxTimeDiffMS.current)
+  const cachedTimeNow = React.useRef(Date.now())
+  const [minTime, setMinTime] = React.useState(Date.now())
+  const [maxTime, setMaxTime] = React.useState(Date.now())
+  const [minTimeDiffMS, setMinTimeDiffMS] = React.useState(percentDiffToDurationDiff(KNOB_MIN_INIT_PERCENT))
+  const [maxTimeDiffMS, setMaxTimeDiffMS] = React.useState(percentDiffToDurationDiff(KNOB_MAX_INIT_PERCENT))
 
   React.useEffect(() => {
-    window.addEventListener('onclocksecond', (event: ClockSecondEvent) => {
-      if (!event.date) return
-      cachedTimeNow.current = event.date.getTime()
+    const cb = async (time: number) => {
+      cachedTimeNow.current = time
+      setMinTime(time + minTimeDiffMS)
+      setMaxTime(time + maxTimeDiffMS)
+    }
 
-      cachedMinDate.current.setTime(cachedTimeNow.current + cachedMinTimeDiffMS.current)
-      cachedMaxDate.current.setTime(cachedTimeNow.current + cachedMaxTimeDiffMS.current)
+    clockSource.addOnClockUpdateCallback(cb)
 
-      setMinDate(cachedMinDate.current)
-      setMaxDate(cachedMaxDate.current)
-    })
-  }, [])
+    return function cleanup() {
+      clockSource.removeOnClockUpdateCallback(cb)
+    }
+  }, [minTimeDiffMS, maxTimeDiffMS])
 
   React.useEffect(() => {
-    cachedMinTimeDiffMS.current = percentDiffToDurationDiff(minPercent)
-    cachedMaxTimeDiffMS.current = percentDiffToDurationDiff(maxPercent)
-    setMinTimeDiffMS(cachedMinTimeDiffMS.current)
-    setMaxTimeDiffMS(cachedMaxTimeDiffMS.current)
+    setMinTimeDiffMS(percentDiffToDurationDiff(minPercent))
+    setMaxTimeDiffMS(percentDiffToDurationDiff(maxPercent))
 
-    cachedMinDate.current.setTime(cachedTimeNow.current + cachedMinTimeDiffMS.current)
-    cachedMaxDate.current.setTime(cachedTimeNow.current + cachedMaxTimeDiffMS.current)
-    setMinDate(cachedMinDate.current)
-    setMaxDate(cachedMaxDate.current)
-  }, [minPercent, maxPercent])
+    setMinTime(cachedTimeNow.current + minTimeDiffMS)
+    setMaxTime(cachedTimeNow.current + maxTimeDiffMS)
+  }, [minPercent, maxPercent, minTimeDiffMS, maxTimeDiffMS])
 
-  return [{min: minDate, max: maxDate}, {min: minTimeDiffMS, max: maxTimeDiffMS}]
+  return [{min: minTime, max: maxTime}, {min: minTimeDiffMS, max: maxTimeDiffMS}]
 }
 
 function useTimeDiffsFormat(timeDiffs: TimeDiffs, decimalPlaces: number) {
@@ -449,7 +442,7 @@ export default function SliderControl() {
   const [minDiffTimeString, maxDiffTimeString] = useTimeDiffsFormat(timeDiffs, 2)
   const {leftHidden: leftKnobLabelHidden, rightHidden: rightKnobLabelHidden} = knobLabelInfo;
   const {min, max} = sliderInfo
-  const {min: minDate, max: maxDate} = dateRange
+  const {min: minTime, max: maxTime} = dateRange
 
   function getPlayPauseControlURL() {
     if (playing) {
@@ -481,7 +474,7 @@ export default function SliderControl() {
             ref={knobRefs.left}
           >
             <LeftKnobLabel data-fade={leftKnobLabelHidden}>
-              {minDate.toLocaleTimeString()} <br />
+              {(new Date(minTime)).toLocaleTimeString()} <br />
               {minDiffTimeString} secs
             </LeftKnobLabel>
           </LeftKnob>
@@ -489,7 +482,7 @@ export default function SliderControl() {
             ref={knobRefs.right}
           >
             <RightKnobLabel data-fade={rightKnobLabelHidden}>
-              {maxDate.toLocaleTimeString()} <br />
+              {(new Date(maxTime)).toLocaleTimeString()} <br />
               {maxDiffTimeString} secs
             </RightKnobLabel>
           </RightKnob>

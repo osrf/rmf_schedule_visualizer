@@ -6,11 +6,12 @@ import { extendControlPositions } from './leaflet/control-positions';
 
 import App from './App';
 import * as serviceWorker from './serviceWorker';
-import { startClock } from './clock';
+import { ClockSource } from './clock';
 
 extendControlPositions();
-const intervalID = startClock()
-window.addEventListener('unload', (_event) => clearInterval(intervalID))
+export const clockSource = new ClockSource()
+clockSource.start()
+window.addEventListener('unload', (_event) => clockSource.stop())
 
 ReactDOM.render(<App />, document.getElementById('root'));
 
