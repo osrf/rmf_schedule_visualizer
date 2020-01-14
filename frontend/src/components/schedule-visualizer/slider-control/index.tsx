@@ -1,8 +1,10 @@
 import React, { DetailedHTMLProps, HTMLAttributes } from 'react'
+import Big from 'big.js'
 import Control from 'react-leaflet-control'
 
 import styled, { ThemedStyledProps } from 'styled-components/macro'
-import { clockSource } from '../../..'
+import { clockSource, webSocketManager } from '../../..'
+import { trajectoryRequest } from '../../../models/Trajectory'
 
 const DURATION_MINS = 120
 const NOW_POSITION_MINS = 90
@@ -24,8 +26,6 @@ const KNOB_WRAPPER_HEIGHT = 8
 const KNOB_LABEL_WIDTH = 100
 const KNOB_MIN_INIT_PERCENT = 20
 const KNOB_MAX_INIT_PERCENT = 80
-
-console.log(DURATION)
 
 const ControlButton = styled.div`
   position: absolute;
@@ -216,7 +216,7 @@ export interface TimeDiffs {
 
 function useSlider(
   dimensionsRef: React.RefObject<KnobControlDimensions>
-): [KnobRefs, SliderInfo, KnobLabelInfo] {
+): [KnobRefs, KnobLabelInfo, SliderInfo, TimeRange, TimeDiffs] {
   const knobRefs: KnobRefs = {
     left: React.useRef<HTMLDivElement>(null),
     center: React.useRef<HTMLDivElement>(null),
@@ -229,10 +229,23 @@ function useSlider(
   const { current: dimensions } = dimensionsRef
   const cachedMin = React.useRef(KNOB_MIN_INIT_PERCENT)
   const cachedMax = React.useRef(KNOB_MAX_INIT_PERCENT)
-  const [min, setMin] = React.useState(KNOB_MIN_INIT_PERCENT)
-  const [max, setMax] = React.useState(KNOB_MAX_INIT_PERCENT)
+  const [minPercent, setMinPercent] = React.useState(KNOB_MIN_INIT_PERCENT)
+  const [maxPercent, setMaxPercent] = React.useState(KNOB_MAX_INIT_PERCENT)
   const [leftKnobLabelHidden, setLeftKnobLabelHidden] = React.useState(true);
   const [rightKnobLabelHidden, setRightKnobLabelHidden] = React.useState(true);
+  const cachedTimeNow = React.useRef(Date.now())
+  const [minTime, setMinTime] = React.useState(Date.now())
+  const [maxTime, setMaxTime] = React.useState(Date.now())
+  const [minTimeDiffMS, setMinTimeDiffMS] = React.useState(percentDiffToDurationDiff(KNOB_MIN_INIT_PERCENT))
+  const [maxTimeDiffMS, setMaxTimeDiffMS] = React.useState(percentDiffToDurationDiff(KNOB_MAX_INIT_PERCENT))
+
+  const onMessageCallback = React.useCallback(async (event: Event) => {
+    console.log(event)
+  }, [])
+
+  React.useEffect(() => {
+    webSocketManager.addOnMessageCallback(onMessageCallback)
+  }, [onMessageCallback])
 
   const onLeftKnobAdjust = React.useCallback((event: MouseEvent) => {
     if (!dimensions) return
@@ -250,9 +263,19 @@ function useSlider(
     }
 
     cachedMin.current = min
-    setMin(min)
+    setMinPercent(min)
     setLeftKnobLabelHidden(false);
   }, [dimensions, cachedMax])
+
+  const onLeftKnobAdjustDone = React.useCallback((event: MouseEvent) => {
+    if (!webSocketManager.client) return
+
+    webSocketManager.client.send(trajectoryRequest({
+      map_name: 'B1',
+      start_time: (new Big(cachedTimeNow.current + minTimeDiffMS)).times(10e6).toString(),
+      finish_time: (new Big(cachedTimeNow.current + maxTimeDiffMS)).times(10e6).toString(),
+    }))
+  }, [minTimeDiffMS, maxTimeDiffMS])
 
   const onMouseMoveWhileLeftKnobDown = React.useCallback((event: MouseEvent) => {
     event.preventDefault()
@@ -265,16 +288,18 @@ function useSlider(
     if (event instanceof FocusEvent) {
       window.addEventListener('mousemove', function onMouseMove(event) {
         onLeftKnobAdjust(event)
+        onLeftKnobAdjustDone(event)
         window.removeEventListener('mousemove', onMouseMove)
       })
     } else {
       onLeftKnobAdjust(event)
+      onLeftKnobAdjustDone(event)
     }
     setLeftKnobLabelHidden(true);
     window.removeEventListener('mousemove', onMouseMoveWhileLeftKnobDown)
     window.removeEventListener('mouseup', onLeftKnobMouseUpOrBlur)
     window.removeEventListener('blur', onLeftKnobMouseUpOrBlur)
-  }, [onLeftKnobAdjust, onMouseMoveWhileLeftKnobDown])
+  }, [onLeftKnobAdjust, onLeftKnobAdjustDone, onMouseMoveWhileLeftKnobDown])
 
   const onLeftKnobMouseDown = React.useCallback((event: MouseEvent) => {
     event.stopPropagation()
@@ -301,9 +326,13 @@ function useSlider(
     }
 
     cachedMax.current = max
-    setMax(max)
+    setMaxPercent(max)
     setRightKnobLabelHidden(false)
   }, [dimensions, cachedMin])
+
+  const onRightKnobAdjustDone = React.useCallback((event: MouseEvent) => {
+
+  }, [])
 
   const onMouseMoveWhileRightKnobDown = React.useCallback((event: MouseEvent) => {
     event.preventDefault()
@@ -316,16 +345,18 @@ function useSlider(
     if (event instanceof FocusEvent) {
       window.addEventListener('mousemove', function onMouseMove(event) {
         onRightKnobAdjust(event)
+        onRightKnobAdjustDone(event)
         window.removeEventListener('mousemove', onMouseMove)
       })
     } else {
       onRightKnobAdjust(event)
+      onRightKnobAdjustDone(event)
     }
     setRightKnobLabelHidden(true)
     window.removeEventListener('mousemove', onMouseMoveWhileRightKnobDown)
     window.removeEventListener('mouseup', onRightKnobMouseUpOrBlur)
     window.removeEventListener('blur', onRightKnobMouseUpOrBlur)
-  }, [onMouseMoveWhileRightKnobDown, onRightKnobAdjust])
+  }, [onMouseMoveWhileRightKnobDown, onRightKnobAdjust, onRightKnobAdjustDone])
 
   const onRightKnobMouseDown = React.useCallback((event: MouseEvent) => {
     event.stopPropagation()
@@ -348,7 +379,35 @@ function useSlider(
     }
   }, [rightKnobElement, onRightKnobMouseDown])
 
-  return [knobRefs, {min, max}, {leftHidden: leftKnobLabelHidden, rightHidden: rightKnobLabelHidden}]
+  React.useEffect(() => {
+    const cb = async (time: number) => {
+      cachedTimeNow.current = time
+      setMinTime(time + minTimeDiffMS)
+      setMaxTime(time + maxTimeDiffMS)
+    }
+
+    clockSource.addOnClockUpdateCallback(cb)
+
+    return function cleanup() {
+      clockSource.removeOnClockUpdateCallback(cb)
+    }
+  }, [minTimeDiffMS, maxTimeDiffMS])
+
+  React.useEffect(() => {
+    setMinTimeDiffMS(percentDiffToDurationDiff(minPercent))
+    setMaxTimeDiffMS(percentDiffToDurationDiff(maxPercent))
+
+    setMinTime(cachedTimeNow.current + minTimeDiffMS)
+    setMaxTime(cachedTimeNow.current + maxTimeDiffMS)
+  }, [minPercent, maxPercent, minTimeDiffMS, maxTimeDiffMS])
+
+  return [
+    knobRefs,
+    {leftHidden: leftKnobLabelHidden, rightHidden: rightKnobLabelHidden},
+    {min: minPercent, max: maxPercent},
+    {min: minTime, max: maxTime},
+    {min: minTimeDiffMS, max: maxTimeDiffMS}
+  ]
 }
 
 function useKnobControlDimensions(
@@ -387,39 +446,6 @@ function percentDiffToDurationDiff(percentDiff: number) {
   return ((percentDiff - NOW_POSITION_PERCENT) / 100) * DURATION
 }
 
-function useTimeRange(sliderInfo: SliderInfo): [TimeRange, TimeDiffs] {
-  const {min: minPercent, max: maxPercent} = sliderInfo;
-  const cachedTimeNow = React.useRef(Date.now())
-  const [minTime, setMinTime] = React.useState(Date.now())
-  const [maxTime, setMaxTime] = React.useState(Date.now())
-  const [minTimeDiffMS, setMinTimeDiffMS] = React.useState(percentDiffToDurationDiff(KNOB_MIN_INIT_PERCENT))
-  const [maxTimeDiffMS, setMaxTimeDiffMS] = React.useState(percentDiffToDurationDiff(KNOB_MAX_INIT_PERCENT))
-
-  React.useEffect(() => {
-    const cb = async (time: number) => {
-      cachedTimeNow.current = time
-      setMinTime(time + minTimeDiffMS)
-      setMaxTime(time + maxTimeDiffMS)
-    }
-
-    clockSource.addOnClockUpdateCallback(cb)
-
-    return function cleanup() {
-      clockSource.removeOnClockUpdateCallback(cb)
-    }
-  }, [minTimeDiffMS, maxTimeDiffMS])
-
-  React.useEffect(() => {
-    setMinTimeDiffMS(percentDiffToDurationDiff(minPercent))
-    setMaxTimeDiffMS(percentDiffToDurationDiff(maxPercent))
-
-    setMinTime(cachedTimeNow.current + minTimeDiffMS)
-    setMaxTime(cachedTimeNow.current + maxTimeDiffMS)
-  }, [minPercent, maxPercent, minTimeDiffMS, maxTimeDiffMS])
-
-  return [{min: minTime, max: maxTime}, {min: minTimeDiffMS, max: maxTimeDiffMS}]
-}
-
 function useTimeDiffsFormat(timeDiffs: TimeDiffs, decimalPlaces: number) {
   const {min: minDiff, max: maxDiff} = timeDiffs;
   const [minTimeString, setMinTimeString] = React.useState(minDiff.toFixed(decimalPlaces))
@@ -437,8 +463,7 @@ export default function SliderControl() {
   const [playing, setPlaying] = React.useState(false)
 
   const [sliderRef, dimensionsRef] = useKnobControlDimensions()
-  const [knobRefs, sliderInfo, knobLabelInfo] = useSlider(dimensionsRef)
-  const [timeRange, timeDiffs] = useTimeRange(sliderInfo)
+  const [knobRefs, knobLabelInfo, sliderInfo, timeRange, timeDiffs] = useSlider(dimensionsRef)
   const [minDiffTimeString, maxDiffTimeString] = useTimeDiffsFormat(timeDiffs, 2)
   const {leftHidden: leftKnobLabelHidden, rightHidden: rightKnobLabelHidden} = knobLabelInfo;
   const {min, max} = sliderInfo
