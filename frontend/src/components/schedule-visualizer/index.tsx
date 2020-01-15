@@ -5,7 +5,7 @@ import {
   LayersControl,
   Map as _Map,
 } from 'react-leaflet'
-import produce from 'immer'
+import { produce } from 'immer'
 import * as L from 'leaflet'
 import styled from 'styled-components'
 
@@ -67,7 +67,7 @@ export default function ScheduleVisualizer() {
 
   React.useEffect(() => {
     getFloors().then((floors) => {
-      setFloors(produce<_IFloor[], any, IFloor[]>(floors, (draft) => {
+      setFloors(produce(floors, (draft: any) => {
         for (const floor of draft) {
           const { elevation, image } = floor
           const { pose, scale } = image
