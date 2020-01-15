@@ -1,3 +1,4 @@
+import Big from 'big.js'
 import { Knot } from "../util/cublic-spline"
 
 export interface TrajectoryRequestParam {
@@ -39,7 +40,7 @@ export interface TrajectoryResponseValue {
 
 export interface TrajectoryResponse {
   response: 'trajectory'
-  values: TrajectoryResponseValue[]
+  values: TrajectoryResponseValue[] | null
 }
 
 export function fromRawKnotsToKnots(rawKnots: RawKnot[]): Knot[] {
