@@ -243,7 +243,7 @@ function useSlider(
     console.log(event)
   })
 
-  const onKnobsAdjustDone = React.useRef((event: MouseEvent) => {
+  const onKnobsAdjustDone = React.useRef((_event: MouseEvent) => {
     if (!webSocketManager.client) return
 
     const startTime = (new Big(cachedTimeNow.current + minTimeDiffMS)).times(1e6).toString()
