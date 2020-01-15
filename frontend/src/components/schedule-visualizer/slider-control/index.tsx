@@ -259,12 +259,10 @@ function useSlider(
 
   const onKnobsAdjustDone = React.useRef((_event: MouseEvent) => {
     if (!webSocketManager.client) return
-    // Mock for now
+
     webSocketManager.client.send(trajectoryRequest({
       map_name: 'B1',
-      //start_time: '1579060470849188199',
       start_time: (new Big(cachedMinTime.current)).times(1e6).toString(),
-      //finish_time: '1698985427001856258',
       finish_time: (new Big(cachedMaxTime.current)).times(1e6).toString(),
     }))
   })
