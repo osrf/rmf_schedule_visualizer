@@ -370,13 +370,13 @@ function useSlider(
     if (leftKnobElement) {
       leftKnobElement.addEventListener('mousedown', onLeftKnobMouseDown.current)
     }
-  }, [leftKnobElement, onLeftKnobMouseDown])
+  }, [leftKnobElement])
 
   React.useEffect(() => {
     if (rightKnobElement) {
       rightKnobElement.addEventListener('mousedown', onRightKnobMouseDown.current)
     }
-  }, [rightKnobElement, onRightKnobMouseDown])
+  }, [rightKnobElement])
 
   React.useEffect(() => {
     const cb = async (time: number) => {
