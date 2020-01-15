@@ -14,6 +14,7 @@ import { IAffineImage as _IAffineImage } from '../../models/AffineImage'
 import { getFloors } from '../../mock'
 import { rawCompressedSVGToSVGSVGElement, SVGSVGElementToDataURI } from '../../util'
 
+import { IMAGE_SCALE } from '../../constants'
 import RobotTrajectoriesOverlay from './robot-trajectories-overlay'
 import ServerDateControl from './server-date-control'
 import SliderControl from './slider-control'
@@ -25,8 +26,6 @@ const Map = styled(_Map)`
   margin: 0;
   padding: 0;
 `
-
-const IMAGE_SCALE = 0.0125
 
 export interface IAffineImage extends Omit<_IAffineImage, 'data'> {
   data: string

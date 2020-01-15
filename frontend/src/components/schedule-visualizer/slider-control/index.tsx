@@ -4,10 +4,10 @@ import Big from 'big.js'
 
 import styled, { ThemedStyledProps } from 'styled-components/macro'
 import { clockSource, webSocketManager } from '../../..'
-import { trajectoryRequest, TrajectoryResponse, fromRawKnotsToKnots } from '../../../models/Trajectory'
+import { trajectoryRequest } from '../../../models/Trajectory'
 
 const DURATION_MINS = 120
-const NOW_POSITION_MINS = 0
+const NOW_POSITION_MINS = 60
 const DURATION = DURATION_MINS * 60 * 1000
 const NOW_POSITION_PERCENT = (NOW_POSITION_MINS / DURATION_MINS) * 100
 const MARKER_NOW_WIDTH = 2
@@ -241,22 +241,6 @@ function useSlider(
   const [minTimeDiffMS, setMinTimeDiffMS] = React.useState(percentDiffToDurationDiff(KNOB_MIN_INIT_PERCENT))
   const [maxTimeDiffMS, setMaxTimeDiffMS] = React.useState(percentDiffToDurationDiff(KNOB_MAX_INIT_PERCENT))
 
-  const onMessageCallback = React.useRef(async (event: WebSocketMessageEvent) => {
-    const data: TrajectoryResponse = JSON.parse(event.data)
-
-    if (data.response !== 'trajectory') return
-
-    const { values } = data
-
-    if (!values) return
-
-    for (const value of values) {
-      const { segments } = value
-      const knots = fromRawKnotsToKnots(segments)
-      console.log(knots)
-    }
-  })
-
   const onKnobsAdjustDone = React.useRef((_event: MouseEvent) => {
     if (!webSocketManager.client) return
 
@@ -266,10 +250,6 @@ function useSlider(
       finish_time: (new Big(cachedMaxTime.current)).times(1e6).toString(),
     }))
   })
-
-  React.useEffect(() => {
-    webSocketManager.addOnMessageCallback(onMessageCallback.current)
-  }, [onMessageCallback])
 
   const onLeftKnobAdjust = React.useRef((event: MouseEvent) => {
     if (!dimensions) return
