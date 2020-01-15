@@ -239,12 +239,12 @@ function useSlider(
   const [minTimeDiffMS, setMinTimeDiffMS] = React.useState(percentDiffToDurationDiff(KNOB_MIN_INIT_PERCENT))
   const [maxTimeDiffMS, setMaxTimeDiffMS] = React.useState(percentDiffToDurationDiff(KNOB_MAX_INIT_PERCENT))
 
-  const onMessageCallback = React.useCallback(async (event: Event) => {
+  const onMessageCallback = React.useRef(async (event: Event) => {
     console.log(event)
-  }, [])
+  })
 
   React.useEffect(() => {
-    webSocketManager.addOnMessageCallback(onMessageCallback)
+    webSocketManager.addOnMessageCallback(onMessageCallback.current)
   }, [onMessageCallback])
 
   const onLeftKnobAdjust = React.useCallback((event: MouseEvent) => {
@@ -270,19 +270,22 @@ function useSlider(
   const onLeftKnobAdjustDone = React.useCallback((event: MouseEvent) => {
     if (!webSocketManager.client) return
 
+    const startTime = (new Big(cachedTimeNow.current + minTimeDiffMS)).times(1e6).toString()
+    const finishTime = (new Big(cachedTimeNow.current + maxTimeDiffMS)).times(1e6).toString()
+
     webSocketManager.client.send(trajectoryRequest({
       map_name: 'B1',
-      start_time: (new Big(cachedTimeNow.current + minTimeDiffMS)).times(10e6).toString(),
-      finish_time: (new Big(cachedTimeNow.current + maxTimeDiffMS)).times(10e6).toString(),
+      start_time: startTime,
+      finish_time: finishTime,
     }))
   }, [minTimeDiffMS, maxTimeDiffMS])
 
-  const onMouseMoveWhileLeftKnobDown = React.useCallback((event: MouseEvent) => {
+  const onMouseMoveWhileLeftKnobDown = React.useRef((event: MouseEvent) => {
     event.preventDefault()
     onLeftKnobAdjust(event)
-  }, [onLeftKnobAdjust])
+  })
 
-  const onLeftKnobMouseUpOrBlur = React.useCallback((event: FocusEvent | MouseEvent) => {
+  const onLeftKnobMouseUpOrBlur = React.useRef((event: FocusEvent | MouseEvent) => {
     event.preventDefault()
 
     if (event instanceof FocusEvent) {
@@ -296,19 +299,19 @@ function useSlider(
       onLeftKnobAdjustDone(event)
     }
     setLeftKnobLabelHidden(true);
-    window.removeEventListener('mousemove', onMouseMoveWhileLeftKnobDown)
-    window.removeEventListener('mouseup', onLeftKnobMouseUpOrBlur)
-    window.removeEventListener('blur', onLeftKnobMouseUpOrBlur)
-  }, [onLeftKnobAdjust, onLeftKnobAdjustDone, onMouseMoveWhileLeftKnobDown])
+    window.removeEventListener('mousemove', onMouseMoveWhileLeftKnobDown.current)
+    window.removeEventListener('mouseup', onLeftKnobMouseUpOrBlur.current)
+    window.removeEventListener('blur', onLeftKnobMouseUpOrBlur.current)
+  })
 
-  const onLeftKnobMouseDown = React.useCallback((event: MouseEvent) => {
+  const onLeftKnobMouseDown = React.useRef((event: MouseEvent) => {
     event.stopPropagation()
     event.preventDefault()
     onLeftKnobAdjust(event)
-    window.addEventListener('mousemove', onMouseMoveWhileLeftKnobDown)
-    window.addEventListener('mouseup', onLeftKnobMouseUpOrBlur)
-    window.addEventListener('blur', onLeftKnobMouseUpOrBlur)
-  }, [onMouseMoveWhileLeftKnobDown, onLeftKnobMouseUpOrBlur, onLeftKnobAdjust])
+    window.addEventListener('mousemove', onMouseMoveWhileLeftKnobDown.current)
+    window.addEventListener('mouseup', onLeftKnobMouseUpOrBlur.current)
+    window.addEventListener('blur', onLeftKnobMouseUpOrBlur.current)
+  })
 
   const onRightKnobAdjust = React.useCallback((event: MouseEvent) => {
     if (!dimensions) return
@@ -328,18 +331,18 @@ function useSlider(
     cachedMax.current = max
     setMaxPercent(max)
     setRightKnobLabelHidden(false)
-  }, [dimensions, cachedMin])
+  }, [dimensions])
 
   const onRightKnobAdjustDone = React.useCallback((event: MouseEvent) => {
 
   }, [])
 
-  const onMouseMoveWhileRightKnobDown = React.useCallback((event: MouseEvent) => {
+  const onMouseMoveWhileRightKnobDown = React.useRef((event: MouseEvent) => {
     event.preventDefault()
     onRightKnobAdjust(event)
-  }, [onRightKnobAdjust])
+  })
 
-  const onRightKnobMouseUpOrBlur = React.useCallback((event: FocusEvent | MouseEvent) => {
+  const onRightKnobMouseUpOrBlur = React.useRef((event: FocusEvent | MouseEvent) => {
     event.preventDefault()
 
     if (event instanceof FocusEvent) {
@@ -353,29 +356,29 @@ function useSlider(
       onRightKnobAdjustDone(event)
     }
     setRightKnobLabelHidden(true)
-    window.removeEventListener('mousemove', onMouseMoveWhileRightKnobDown)
-    window.removeEventListener('mouseup', onRightKnobMouseUpOrBlur)
-    window.removeEventListener('blur', onRightKnobMouseUpOrBlur)
-  }, [onMouseMoveWhileRightKnobDown, onRightKnobAdjust, onRightKnobAdjustDone])
+    window.removeEventListener('mousemove', onMouseMoveWhileRightKnobDown.current)
+    window.removeEventListener('mouseup', onRightKnobMouseUpOrBlur.current)
+    window.removeEventListener('blur', onRightKnobMouseUpOrBlur.current)
+  })
 
-  const onRightKnobMouseDown = React.useCallback((event: MouseEvent) => {
+  const onRightKnobMouseDown = React.useRef((event: MouseEvent) => {
     event.stopPropagation()
     event.preventDefault()
     onRightKnobAdjust(event)
-    window.addEventListener('mousemove', onMouseMoveWhileRightKnobDown)
-    window.addEventListener('mouseup', onRightKnobMouseUpOrBlur)
-    window.addEventListener('blur', onRightKnobMouseUpOrBlur)
-  }, [onMouseMoveWhileRightKnobDown, onRightKnobMouseUpOrBlur, onRightKnobAdjust])
+    window.addEventListener('mousemove', onMouseMoveWhileRightKnobDown.current)
+    window.addEventListener('mouseup', onRightKnobMouseUpOrBlur.current)
+    window.addEventListener('blur', onRightKnobMouseUpOrBlur.current)
+  })
 
   React.useEffect(() => {
     if (leftKnobElement) {
-      leftKnobElement.addEventListener('mousedown', onLeftKnobMouseDown)
+      leftKnobElement.addEventListener('mousedown', onLeftKnobMouseDown.current)
     }
   }, [leftKnobElement, onLeftKnobMouseDown])
 
   React.useEffect(() => {
     if (rightKnobElement) {
-      rightKnobElement.addEventListener('mousedown', onRightKnobMouseDown)
+      rightKnobElement.addEventListener('mousedown', onRightKnobMouseDown.current)
     }
   }, [rightKnobElement, onRightKnobMouseDown])
 
