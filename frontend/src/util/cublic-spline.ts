@@ -1,8 +1,18 @@
 import Big from "big.js";
+import { IPose2D } from "../models/Pose2D";
 
 export interface Segment {
-  initialPosition: Big;
-  finalPosition: Big;
+  initialPose: number;
+  finalPose: number;
+  initialVelocity: number;
+  finalVelocity: number;
+  initialTime: Big;
+  finalTime: Big;
+}
+
+export interface BigSegment {
+  initialPose: Big;
+  finalPose: Big;
   initialVelocity: Big;
   finalVelocity: Big;
   initialTime: Big;
@@ -16,20 +26,14 @@ export interface CoefficientSet {
   d: Big;
 }
 
-export interface Pose2D {
-  x: Big;
-  y: Big;
-  theta: Big;
-}
-
 export interface Velocity {
-  x: Big;
-  y: Big;
-  theta: Big;
+  x: number;
+  y: number;
+  theta: number;
 }
 
 export interface Knot {
-  pose: Pose2D;
+  pose: IPose2D;
   velocity: Velocity;
   time: Big;
 }
@@ -42,15 +46,28 @@ export interface SegmentCoefficients {
   finalTime: Big;
 }
 
+export function segmentToBig(segment: Segment): BigSegment {
+  const { initialTime, finalTime } = segment
+
+  return {
+    initialPose: new Big(segment.initialPose),
+    finalPose: new Big(segment.finalPose),
+    initialVelocity: new Big(segment.initialVelocity),
+    finalVelocity: new Big(segment.finalVelocity),
+    initialTime,
+    finalTime
+  }
+}
+
 export function segmentToCoefficientSet(segment: Segment): CoefficientSet {
   const {
-    initialPosition: x0,
-    finalPosition: x1,
+    initialPose: x0,
+    finalPose: x1,
     initialVelocity: v0,
     finalVelocity: v1,
     initialTime,
     finalTime,
-  } = segment;
+  } = segmentToBig(segment);
 
   const dt = finalTime.minus(initialTime);
   const w0 = v0.div(dt);
@@ -67,10 +84,10 @@ export function segmentToCoefficientSet(segment: Segment): CoefficientSet {
   };
 }
 
-export function assignKnotsToSegment(knot: Knot, nextKnot: Knot, forCoordinate: keyof Pose2D) {
+export function assignKnotsToSegment(knot: Knot, nextKnot: Knot, forCoordinate: keyof IPose2D) {
   return {
-    initialPosition: knot.pose[forCoordinate],
-    finalPosition: nextKnot.pose[forCoordinate],
+    initialPose: knot.pose[forCoordinate],
+    finalPose: nextKnot.pose[forCoordinate],
     initialVelocity: knot.velocity[forCoordinate],
     finalVelocity: nextKnot.velocity[forCoordinate],
     initialTime: knot.time,
@@ -108,14 +125,14 @@ export function resolveSpline(
   interpolatedTime: Big,
   interpolatedTimePow2 = interpolatedTime.pow(2),
   interpolatedTimePow3 = interpolatedTime.pow(3),
-): Big {
-  return coefficientSet.a.times(interpolatedTimePow3)
+): number {
+  return parseFloat(coefficientSet.a.times(interpolatedTimePow3)
     .plus(coefficientSet.b.times(interpolatedTimePow2))
     .plus(coefficientSet.c.times(interpolatedTime))
-    .plus(coefficientSet.d);
+    .plus(coefficientSet.d).toJSON())
 }
 
-export function getPositionFromSegmentCoefficientsArray(time: Big, scs: SegmentCoefficients[]): Pose2D | null {
+export function getPositionFromSegmentCoefficientsArray(time: Big, scs: SegmentCoefficients[]): IPose2D | null {
   let sc: SegmentCoefficients | undefined;
 
   for (sc of scs) {
