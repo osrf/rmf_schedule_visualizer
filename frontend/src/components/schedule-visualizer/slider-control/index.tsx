@@ -7,7 +7,7 @@ import { clockSource, webSocketManager } from '../../..'
 import { trajectoryRequest } from '../../../models/Trajectory'
 
 const DURATION_MINS = 120
-const NOW_POSITION_MINS = 90
+const NOW_POSITION_MINS = 0
 const DURATION = DURATION_MINS * 60 * 1000
 const NOW_POSITION_PERCENT = (NOW_POSITION_MINS / DURATION_MINS) * 100
 const MARKER_NOW_WIDTH = 2
@@ -157,7 +157,9 @@ const MarkerBase = styled.div`
   z-index: -1;
 `
 
+// Hiding the MarkerNow for now. We don't need to calculate the past.
 const MarkerNow = styled(MarkerBase)`
+  display: none;
   background: red;
   left: ${NOW_POSITION_PERCENT}%;
   width: ${MARKER_NOW_WIDTH}px;
