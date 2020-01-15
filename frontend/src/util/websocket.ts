@@ -1,8 +1,8 @@
-export type AsyncEventListener = (evt: Event) => Promise<void>
+export type AsyncEventListener<T = Event> = (evt: T) => Promise<void>
 
 export class WebSocketManager {
   private onOpenCallbacks: AsyncEventListener[] = []
-  private onMessageCallbacks: AsyncEventListener[] = []
+  private onMessageCallbacks: AsyncEventListener<WebSocketMessageEvent>[] = []
 
   private __client?: WebSocket
 
@@ -53,7 +53,7 @@ export class WebSocketManager {
     this.onOpenCallbacks = []
   }
 
-  addOnMessageCallback(eventListener: AsyncEventListener) {
+  addOnMessageCallback(eventListener: AsyncEventListener<WebSocketMessageEvent>) {
     const callbackIndex = this.onMessageCallbacks.indexOf(eventListener)
 
     if (callbackIndex !== -1) return
@@ -61,7 +61,7 @@ export class WebSocketManager {
     this.onMessageCallbacks.push(eventListener)
   }
 
-  removeOnMessageCallback(eventListener: AsyncEventListener) {
+  removeOnMessageCallback(eventListener: AsyncEventListener<WebSocketMessageEvent>) {
     const callbackIndex = this.onMessageCallbacks.indexOf(eventListener)
 
     if (callbackIndex === -1) return
