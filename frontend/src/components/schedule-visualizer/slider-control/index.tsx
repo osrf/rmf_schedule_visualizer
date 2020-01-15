@@ -1,10 +1,10 @@
 import React, { DetailedHTMLProps, HTMLAttributes } from 'react'
-import Big from 'big.js'
 import Control from 'react-leaflet-control'
+import Big from 'big.js'
 
 import styled, { ThemedStyledProps } from 'styled-components/macro'
 import { clockSource, webSocketManager } from '../../..'
-import { trajectoryRequest } from '../../../models/Trajectory'
+import { trajectoryRequest, TrajectoryResponse, fromRawKnotsToKnots } from '../../../models/Trajectory'
 
 const DURATION_MINS = 120
 const NOW_POSITION_MINS = 0
@@ -234,25 +234,38 @@ function useSlider(
   const [leftKnobLabelHidden, setLeftKnobLabelHidden] = React.useState(true);
   const [rightKnobLabelHidden, setRightKnobLabelHidden] = React.useState(true);
   const cachedTimeNow = React.useRef(Date.now())
+  const cachedMinTime = React.useRef(0)
+  const cachedMaxTime = React.useRef(0)
   const [minTime, setMinTime] = React.useState(Date.now())
   const [maxTime, setMaxTime] = React.useState(Date.now())
   const [minTimeDiffMS, setMinTimeDiffMS] = React.useState(percentDiffToDurationDiff(KNOB_MIN_INIT_PERCENT))
   const [maxTimeDiffMS, setMaxTimeDiffMS] = React.useState(percentDiffToDurationDiff(KNOB_MAX_INIT_PERCENT))
 
-  const onMessageCallback = React.useRef(async (event: Event) => {
-    console.log(event)
+  const onMessageCallback = React.useRef(async (event: WebSocketMessageEvent) => {
+    const data: TrajectoryResponse = JSON.parse(event.data)
+
+    if (data.response !== 'trajectory') return
+
+    const { values } = data
+
+    if (!values) return
+
+    for (const value of values) {
+      const { segments } = value
+      const knots = fromRawKnotsToKnots(segments)
+      console.log(knots)
+    }
   })
 
   const onKnobsAdjustDone = React.useRef((_event: MouseEvent) => {
     if (!webSocketManager.client) return
-
-    const startTime = (new Big(cachedTimeNow.current + minTimeDiffMS)).times(1e6).toString()
-    const finishTime = (new Big(cachedTimeNow.current + maxTimeDiffMS)).times(1e6).toString()
-
+    // Mock for now
     webSocketManager.client.send(trajectoryRequest({
       map_name: 'B1',
-      start_time: startTime,
-      finish_time: finishTime,
+      //start_time: '1579060470849188199',
+      start_time: (new Big(cachedMinTime.current)).times(1e6).toString(),
+      //finish_time: '1698985427001856258',
+      finish_time: (new Big(cachedMaxTime.current)).times(1e6).toString(),
     }))
   })
 
@@ -381,8 +394,10 @@ function useSlider(
   React.useEffect(() => {
     const cb = async (time: number) => {
       cachedTimeNow.current = time
-      setMinTime(time + minTimeDiffMS)
-      setMaxTime(time + maxTimeDiffMS)
+      cachedMinTime.current = time + minTimeDiffMS
+      cachedMaxTime.current = time + maxTimeDiffMS
+      setMinTime(cachedMinTime.current)
+      setMaxTime(cachedMaxTime.current)
     }
 
     clockSource.addOnClockUpdateCallback(cb)
@@ -396,8 +411,10 @@ function useSlider(
     setMinTimeDiffMS(percentDiffToDurationDiff(minPercent))
     setMaxTimeDiffMS(percentDiffToDurationDiff(maxPercent))
 
-    setMinTime(cachedTimeNow.current + minTimeDiffMS)
-    setMaxTime(cachedTimeNow.current + maxTimeDiffMS)
+    cachedMinTime.current = cachedTimeNow.current + minTimeDiffMS
+    cachedMaxTime.current = cachedTimeNow.current + maxTimeDiffMS
+    setMinTime(cachedMinTime.current)
+    setMaxTime(cachedMaxTime.current)
   }, [minPercent, maxPercent, minTimeDiffMS, maxTimeDiffMS])
 
   return [
