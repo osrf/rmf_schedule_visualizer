@@ -419,7 +419,7 @@ function useKnobControlDimensions(
     viewportMaxX: 0,
   })
 
-  const onWindowResize = React.useRef(() => {
+  const onWindowResize = React.useCallback(() => {
     if (sliderElement) {
       const {x, width} = sliderElement.getBoundingClientRect()
       if (dimensionsRef.current) {
@@ -428,13 +428,13 @@ function useKnobControlDimensions(
         dimensionsRef.current.viewportMaxX = x + width
       }
     }
-  })
+  }, [sliderElement])
 
   React.useEffect(() => {
-    onWindowResize.current();
-    window.addEventListener('resize', onWindowResize.current);
+    onWindowResize();
+    window.addEventListener('resize', onWindowResize);
     return function cleanup() {
-      window.removeEventListener('resize', onWindowResize.current);
+      window.removeEventListener('resize', onWindowResize);
     }
   }, [onWindowResize])
 
