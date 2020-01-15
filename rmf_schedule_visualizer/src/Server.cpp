@@ -16,7 +16,9 @@
 */
 
 #include "Server.hpp"
+
 #include <json.hpp>
+
 #include <rmf_traffic/geometry/Circle.hpp>
 #include <rmf_traffic/geometry/Box.hpp>
 
@@ -49,7 +51,7 @@ void Server::run()
     _server.set_reuse_addr(true);
     _server.listen(_port);
     _server.start_accept();
-    _server_thread = std::thread([&](){ this->_server.run(); });
+    _server_thread = std::thread([&](){this->_server.run();});
   }
 }
 
@@ -78,38 +80,27 @@ void Server::on_close(connection_hdl hdl)
 void Server::on_message(connection_hdl hdl, server::message_ptr msg)
 {
   std::string response;
-  RequestParam request_param;
 
-  auto ok = parse_request(msg,request_param);
-  std::cout<<"OK: "<<ok<<std::endl;
+  auto ok = parse_request(msg,response);
 
   if(ok)
   {
-    std::cout<<"start_time: "
-        <<request_param.start_time.time_since_epoch().count()<<std::endl;
-    std::cout<<"finish_time: "
-        <<request_param.finish_time.time_since_epoch().count()<<std::endl;
-
-    auto trajectories = _visualizer_data_node.get_trajectories(request_param);
-    parse_trajectories(trajectories, response);
+    std::cout << "Response: " << response << std::endl;
+    server::message_ptr response_msg = std::move(msg);
+    response_msg->set_payload(response);
+    _server.send(hdl, response_msg);
   }
-
-  std::cout<<"Response: "<<response<<std::endl;
- 
-  server::message_ptr response_msg =std::move(msg);
-  response_msg->set_payload(response);
-  _server.send(hdl, response_msg);
-
-
+  else
+  {
+    std::cout << "Invalid request received" << std::endl;
+  }
 }
 
-bool Server::parse_request(server::message_ptr msg, RequestParam& request_param)
+bool Server::parse_request(server::message_ptr msg, std::string& response)
 {
-
   using namespace std::chrono_literals;
 
   // TODO(YV) get names of the keys from config yaml file 
-
   std::string msg_payload = msg->get_payload();
   try
   {
@@ -117,39 +108,76 @@ bool Server::parse_request(server::message_ptr msg, RequestParam& request_param)
     if (j.size() != 2)
       return false;
     
-    if(j.count("request") != 1 || j.count("param") != 1)
+    if (j.count("request") != 1 || j.count("param") != 1)
       return false;
-    
-    json j_param = j["param"];
-    if (j_param.size() != 3)
-      return false;
-    
-    if(
-        j_param.count("map_name") == 1 and 
-        j_param.count("start_time") == 1 and 
-        j_param.count("finish_time") == 1 and 
-        j_param["finish_time"] > j_param["start_time"])
-        {
-          request_param.map_name = j_param["map_name"];
-          // Convert json fields to nanosecond durations
-          // to set rmf_traffic::Time fields
-          std::chrono::nanoseconds start_time_nano(j_param["start_time"]);
-          std::chrono::nanoseconds finish_time_nano(j_param["finish_time"]);
-          request_param.start_time = rmf_traffic::Time(
-              rmf_traffic::Duration(start_time_nano));
-          request_param.finish_time = rmf_traffic::Time(
-              rmf_traffic::Duration(finish_time_nano));
 
-          return true;
+    if (j["request"] == "trajectory")
+    { 
+      json j_param = j["param"];
+      if (j_param.size() != 3)
+        return false;
+      
+      if (
+          j_param.count("map_name") == 1 and 
+          j_param.count("start_time") == 1 and 
+          j_param.count("finish_time") == 1 and 
+          j_param["finish_time"] > j_param["start_time"])
+          {
+            RequestParam request_param;
+            request_param.map_name = j_param["map_name"];
+            // We assume the time parameters are passed as strings and 
+            // require conversion to rmf_traffic::Time
 
-        }
+            std::string start_time_string = j_param["start_time"];
+            std::string finish_time_string = j_param["finish_time"];
+
+            std::chrono::nanoseconds start_time_nano(
+                std::stoull(start_time_string));
+            std::chrono::nanoseconds finish_time_nano(
+                std::stoull(finish_time_string));
+
+            request_param.start_time = rmf_traffic::Time(
+                rmf_traffic::Duration(start_time_nano));
+            request_param.finish_time = rmf_traffic::Time(
+                rmf_traffic::Duration(finish_time_nano));
+
+            std::cout << "Trajectory request received" << std::endl;
+            std::cout << "map_name: "
+                << request_param.map_name << std::endl;
+            std::cout << "start_time: "
+                << request_param.start_time.time_since_epoch().count() << std::endl;
+            std::cout<<"finish_time: "
+                << request_param.finish_time.time_since_epoch().count() << std::endl;
+            
+            std::lock_guard<std::mutex> lock(_visualizer_data_node.get_mutex());
+            auto trajectories = _visualizer_data_node.get_trajectories(request_param);
+            parse_trajectories(trajectories, response);
+
+            return true;
+          }
+      else
+      {
+        return false;
+      }
+    }
+    else if (j["request"] == "time")
+    {
+      std::cout << "Time request received" << std::endl;
+      json j_res = { {"response", "time"}, {"values", {} } };
+      j_res["values"].push_back(
+          _visualizer_data_node.now().time_since_epoch().count());
+      response = j_res.dump();
+      return true;
+    }
     else
+    {
       return false;
+    }
   }
 
   catch(const std::exception& e)
   {
-    std::cerr << e.what() << '\n';
+    // std::cerr << e.what() << '\n';
     return false;
   }
 }
@@ -158,7 +186,7 @@ void Server::parse_trajectories(
     std::vector<rmf_traffic::Trajectory>& trajectories,
     std::string& response)
 {
-
+  // Templates used for response generation
   json _j_res = { {"response", "trajectory"}, {"values", {} } };
   json _j_traj ={ {"shape", {} }, {"dimensions", {} }, {"segments", {} } };
   json _j_seg = { {"x", {} }, {"v", {} }, {"t", {} } };
@@ -170,31 +198,24 @@ void Server::parse_trajectories(
     for (rmf_traffic::Trajectory trajectory : trajectories)
     {
       auto j_traj = _j_traj;
-      try
-      {
-        // TODO(YV) interpret the shape from profile 
-        // This will fail if shape is Box
-        j_traj["shape"].push_back("circle");
-        const auto &circle = static_cast<const rmf_traffic::geometry::Circle&>(
-            trajectory.begin()->get_profile()->get_shape()->source());
-        j_traj["dimensions"].push_back(circle.get_radius());
-      }
-      catch(const std::exception& e)
-      {
-        std::cerr << e.what() << '\n';
-      }
-      
+      // TODO(YV) interpret the shape from profile 
+      // This will fail if shape is Box
+      j_traj["shape"] = ("circle");
+      const auto &circle = static_cast<const rmf_traffic::geometry::Circle&>(
+          trajectory.begin()->get_profile()->get_shape()->source());
+      j_traj["dimensions"].push_back(circle.get_radius());
+
       for (auto it = trajectory.begin(); it!= trajectory.end(); it++)
       {
         auto j_seg = _j_seg;
         auto finish_time = it->get_finish_time();
         auto finish_position = it->get_finish_position();
         auto finish_velocity = it->get_finish_velocity();
-        j_seg["x"].push_back(
-            {finish_position[0],finish_position[1],finish_position[2]});
-        j_seg["v"].push_back(
-            {finish_velocity[0],finish_velocity[1],finish_velocity[2]});
-        j_seg["t"] = finish_time.time_since_epoch().count();
+        j_seg["x"] = 
+            {finish_position[0],finish_position[1],finish_position[2]};
+        j_seg["v"] =
+            {finish_velocity[0],finish_velocity[1],finish_velocity[2]};
+        j_seg["t"] = std::to_string(finish_time.time_since_epoch().count());
         j_traj["segments"].push_back(j_seg);
       }
       j_res["values"].push_back(j_traj);
@@ -220,7 +241,6 @@ Server::~Server()
   if(_server_thread.joinable())
   {
     _server.stop();
-
     _server_thread.join();
   }
 }
