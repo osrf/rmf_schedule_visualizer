@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 
-
 import './index.css';
 import 'leaflet/dist/leaflet.css'
 import { extendControlPositions } from './leaflet/control-positions';
@@ -12,11 +11,29 @@ import { ClockSource } from './clock';
 import { WebSocketManager } from './util/websocket';
 
 extendControlPositions();
-export const clockSource = new ClockSource()
-clockSource.start()
-
 export const webSocketManager = new WebSocketManager('ws://localhost:8006')
+
+/*
+webSocketManager.addOnOpenCallback(async (event: Event) => {
+  if (!webSocketManager.client) return
+  webSocketManager.client.send(JSON.stringify({
+    request: 'time',
+    param: {}
+  }))
+})
+*/
+
 webSocketManager.connect()
+
+export const clockSource = new ClockSource()
+
+/*
+webSocketManager.addOnMessageCallback(async (event: WebSocketMessageEvent) => {
+  clockSource.timeDiff = 
+})
+*/
+
+clockSource.start()
 
 window.addEventListener('unload', (_event) => {
   webSocketManager.disconnect()
