@@ -157,9 +157,7 @@ const MarkerBase = styled.div`
   z-index: -1;
 `
 
-// Hiding the MarkerNow for now. We don't need to calculate the past.
 const MarkerNow = styled(MarkerBase)`
-  display: none;
   background: red;
   left: ${NOW_POSITION_PERCENT}%;
   width: ${MARKER_NOW_WIDTH}px;
