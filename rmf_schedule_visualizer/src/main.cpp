@@ -53,20 +53,20 @@ int main(int argc, char* argv[])
   const std::vector<std::string> args =
       rclcpp::init_and_remove_ros_arguments(argc, argv);
 
-  std::string node_name;
-  if(!get_arg(args, "-n", node_name, "node name"))
-    return 1;
+  std::string node_name = "viz";
+  get_arg(args, "-n", node_name, "node name", false);
 
   std::string port_string;
   get_arg(args, "-p", port_string, "port",false);
-  const uint16_t port = port_string.empty()? 8006 : std::stoul(port_string, nullptr, 0);
+  const uint16_t port = port_string.empty()? 8006 : std::stoul(
+      port_string, nullptr, 0);
 
   const auto visualizer_data_node =
     rmf_schedule_visualizer::VisualizerDataNode::make(node_name);
 
   if(!visualizer_data_node)
   {
-    std::cerr << "Failed to initialize the fleet adapter node" << std::endl;
+    std::cerr << "Failed to initialize the visualizer node" << std::endl;
     return 1;
   }
 
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
   
   if(!server_ptr)
   {
-    std::cerr << "Failed to initialize the Server" << std::endl;
+    std::cerr << "Failed to initialize the websocket server" << std::endl;
     return 1;
   }
   
@@ -89,7 +89,6 @@ int main(int argc, char* argv[])
 
   rclcpp::spin(visualizer_data_node);
   
-
   RCLCPP_INFO(
         visualizer_data_node->get_logger(),
         "Closing down");
