@@ -14,11 +14,10 @@ import { IAffineImage as _IAffineImage } from '../../models/AffineImage'
 import { getFloors } from '../../mock'
 import { rawCompressedSVGToSVGSVGElement, SVGSVGElementToDataURI } from '../../util'
 
+import RobotTrajectoriesOverlay from './robot-trajectories-overlay'
 import ServerDateControl from './server-date-control'
 import SliderControl from './slider-control'
 import { clockSource } from '../..'
-
-const { BaseLayer } = LayersControl
 
 const Map = styled(_Map)`
   height: 100%;
@@ -116,11 +115,14 @@ export default function ScheduleVisualizer() {
       <LayersControl position="topright">
         {
           floors.map((floor, i) => (
-            <BaseLayer checked={i === 0} name={floor.name} key={floor.name}>
+            <LayersControl.BaseLayer checked={i === 0} name={floor.name} key={floor.name}>
               <ImageOverlay bounds={floor.bounds} url={floor.image.data} />
-            </BaseLayer> 
+            </LayersControl.BaseLayer> 
           ))
         }
+        <LayersControl.Overlay name="Robots Trajectories" checked>
+          <RobotTrajectoriesOverlay />
+        </LayersControl.Overlay>
       </LayersControl>
       <SliderControl />
     </Map>
