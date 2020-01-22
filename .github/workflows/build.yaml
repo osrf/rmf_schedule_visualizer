@@ -13,7 +13,7 @@ jobs:
         # rmf_core and traffic_editor dependencies
         sudo apt-get install libeigen3-dev libccd-dev libfcl-dev libyaml-cpp-dev -y
         # rmf_schedule_visualizer dependencies
-        sudo apt-get install ros-eloquent-rviz2 libwebsocketpp-dev libboost-all-dev -y
+        sudo apt-get install ros-eloquent-rviz2 libyaml-cpp-dev libwebsocketpp-dev libboost-system-dev libboost-date-time-dev libboost-regex-dev libboost-random-dev -y
     - name: setup
       run: |
         cd /home/
