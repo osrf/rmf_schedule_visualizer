@@ -10,10 +10,7 @@ jobs:
     - name: deps
       run: |
         sudo apt update
-        # rmf_core and traffic_editor dependencies
-        sudo apt-get install libeigen3-dev libccd-dev libfcl-dev libyaml-cpp-dev -y
-        # rmf_schedule_visualizer dependencies
-        sudo apt-get install ros-eloquent-rviz2 ros-eloquent-launch* libyaml-cpp-dev libwebsocketpp-dev \
+        sudo apt-get install libwebsocketpp-dev python3-shapely python3-yaml \
         libboost-system-dev libboost-date-time-dev libboost-regex-dev libboost-random-dev -y
     - name: setup
       run: |
@@ -23,11 +20,18 @@ jobs:
         git clone https://github.com/osrf/traffic_editor
         git clone https://github.com/osrf/rmf_core
         git clone https://github.com/osrf/rmf_schedule_visualizer
+        
     - name: checkout
       shell: bash
       run:  |
         cd /home/ws_rmf/src/rmf_schedule_visualizer
         git checkout "${GITHUB_REF:11}"
+    - name: ros-deps
+      run: |
+        cd /home/ws_rmf
+        rosdep update
+        rosdep install --from-paths src --ignore-src --rosdistro eloquent \
+          -y --skip-keys "websocketpp ament_python"
     - name: build
       shell: bash
       run: |
