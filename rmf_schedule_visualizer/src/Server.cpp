@@ -202,8 +202,9 @@ std::string Server::parse_trajectories(
       auto j_traj = _j_traj;
       j_traj["id"] = element.id;
       j_traj["shape"] = "circle";
-      j_traj["dimensions"] = trajectory.begin()->
-          get_profile()->get_shape()->get_characteristic_length();
+      const auto &circle = static_cast<const rmf_traffic::geometry::Circle&>(
+          trajectory.begin()->get_profile()->get_shape()->source());
+      j_traj["dimensions"].push_back(circle.get_radius());
 
       auto add_segment = [&](rmf_traffic::Time finish_time,
            Eigen::Vector3d finish_position,
