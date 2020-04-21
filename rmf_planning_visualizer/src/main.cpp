@@ -15,6 +15,7 @@
  *
 */
 
+#include <chrono>
 #include <iostream>
 
 #include <rmf_traffic/geometry/Circle.hpp>
@@ -119,9 +120,30 @@ int main(int argc, char** argv)
       ));
 
   auto planning_inspector = 
-      rmf_planning_visualizer::PlanningInspector::make(
-          "planning_inspector_node",
-          planner_b);
+      rmf_planning_visualizer::PlanningInspector::make(planner_b);
+
+  const auto time = std::chrono::steady_clock::now();
+
+  auto b1_starts = rmf_traffic::agv::compute_plan_starts(
+      graph_b, {16.858, -15.758, -M_PI/2.0}, time);
+  auto b2_starts = rmf_traffic::agv::compute_plan_starts(
+      graph_b, {16.83, -17.26, -M_PI/2.0}, time);
+
+  bool started = 
+      planning_inspector->begin(
+          b1_starts, {11}, planner_b.get_default_options());
+  if (!started)
+  {
+    std::cout << "<ERROR> planning_inspector can't begin plan" << std::endl;
+    return 1;
+  }
+
+  bool plan_completed = false;
+  while (!plan_completed)
+  {
+    planning_inspector->step();
+    plan_completed = planning_inspector->plan_completed();
+  }
 
   std::cout << "all done" << std::endl;
   return 0;
