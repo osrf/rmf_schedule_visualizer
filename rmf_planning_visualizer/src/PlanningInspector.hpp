@@ -20,6 +20,9 @@
 
 #include <string>
 #include <memory>
+#include <vector>
+
+#include <rmf_utils/optional.hpp>
 
 #include <rmf_traffic/agv/Planner.hpp>
 #include <rmf_traffic/agv/debug/Planner.hpp>
@@ -29,24 +32,56 @@
 namespace rmf_planning_visualizer
 {
 
-class PlanningInspector : public rclcpp::Node
+class PlanningInspector
 {
 
 public:
 
+  using Plan = rmf_traffic::agv::Plan;
   using Planner = rmf_traffic::agv::Planner;
+  using Node = Planner::Debug::Node;
 
-  static std::shared_ptr<PlanningInspector> make(
-      std::string node_name,
-      const Planner& planner);
+  static std::shared_ptr<PlanningInspector> make(const Planner& planner);
+
+  ~PlanningInspector();
+
+  bool begin(
+      const std::vector<Plan::Start>& starts,
+      Plan::Goal goal,
+      Plan::Options options);
+
+  void step();
+
+  struct PlanningState;
+  using ConstPlanningStatePtr = std::shared_ptr<const PlanningState>;
+
+  struct PlanningState
+  {
+    rmf_utils::optional<Plan> plan;
+    Node::SearchQueue unexpanded_nodes;
+    Node::Vector expanded_nodes;
+    Node::Vector terminal_nodes;
+  };
+
+  rmf_utils::optional<Plan> plan() const;
+
+  bool plan_completed() const;
+
+  int step_num() const;
+  
+  ConstPlanningStatePtr get_state() const;
+
+  ConstPlanningStatePtr get_state(int step_index) const;
 
 private:
 
   std::unique_ptr<Planner::Debug> _debugger;
 
-  PlanningInspector(
-      std::string node_name, 
-      std::unique_ptr<Planner::Debug> debugger);
+  std::unique_ptr<Planner::Debug::Progress> _progress;
+
+  std::vector<ConstPlanningStatePtr> _planning_states;
+
+  PlanningInspector(std::unique_ptr<Planner::Debug> debugger);
 
 };
 
