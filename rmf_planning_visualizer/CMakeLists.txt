@@ -17,26 +17,59 @@ find_package(rclcpp REQUIRED)
 find_package(websocketpp REQUIRED)
 
 #===============================================================================
-add_executable(planning_visualizer
-  src/main.cpp
+
+add_library(rmf_planning_inspector SHARED
   src/PlanningInspector.cpp
 )
-target_link_libraries(planning_visualizer
+target_link_libraries(rmf_planning_inspector
   PUBLIC
     rmf_traffic::rmf_traffic
-    ${rclcpp_LIBRARIES}
 )
-target_include_directories(planning_visualizer
+target_include_directories(rmf_planning_inspector
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+ament_export_interfaces(rmf_planning_inspector HAS_LIBRARY_TARGET)
+ament_export_dependencies(rmf_traffic)
+
+#===============================================================================
+
+add_executable(rmf_planning_visualizer
+  src/planning_visualizer_node.cpp
+)
+target_link_libraries(rmf_planning_visualizer
+  PRIVATE
+    rmf_planning_inspector
+    ${rclcpp_LIBRARIES}
+)
+target_include_directories(rmf_planning_visualizer
+  PUBLIC
     ${rclcpp_INCLUDE_DIRS}
-    ${websocketpp_INCLUDE_DIRS}
+)
+
+#===============================================================================
+
+add_executable(test_inspector
+  src/test_planning_inspector.cpp
+)
+target_link_libraries(test_inspector
+  PRIVATE
+    rmf_traffic::rmf_traffic
+    rmf_planning_inspector
+)
+
+#===============================================================================
+
+install(
+  DIRECTORY include/
+  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 install(
-  TARGETS planning_visualizer
-  EXPORT planning_visualizer
+  TARGETS rmf_planning_inspector test_inspector
+  EXPORT rmf_planning_inspector
   RUNTIME DESTINATION lib/${PROJECT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
