@@ -58,13 +58,14 @@ public:
   struct PlanningState
   {
     std::size_t step_index;
-
     rmf_utils::optional<Plan> plan;
-    Node::SearchQueue unexpanded_nodes;
     Node::Vector expanded_nodes;
     Node::Vector terminal_nodes;
 
+    void print_plan(const Planner::Debug::ConstNodePtr& node) const;
+
     void print() const;
+
   };
 
   rmf_utils::optional<Plan> plan() const;
