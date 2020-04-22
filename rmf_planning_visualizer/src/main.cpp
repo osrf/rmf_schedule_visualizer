@@ -16,6 +16,7 @@
 */
 
 #include <chrono>
+#include <cstdio>
 #include <iostream>
 
 #include <rmf_traffic/geometry/Circle.hpp>
@@ -23,7 +24,6 @@
 #include <rmf_traffic/schedule/Participant.hpp>
 
 #include "PlanningInspector.hpp"
-
 
 int main(int argc, char** argv)
 {
@@ -142,9 +142,13 @@ int main(int argc, char** argv)
   while (!plan_completed)
   {
     planning_inspector->step();
+
+    int step_num = planning_inspector->step_num();
+    auto planning_state = planning_inspector->get_state();
+    planning_state->print();
+
     plan_completed = planning_inspector->plan_completed();
   }
-
-  std::cout << "all done" << std::endl;
+  
   return 0;
 }
