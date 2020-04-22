@@ -15,6 +15,8 @@
  *
 */
 
+#include <cstdio>
+
 #include "PlanningInspector.hpp"
 
 namespace rmf_planning_visualizer
@@ -62,6 +64,7 @@ bool PlanningInspector::begin(
   _progress.reset(new Progress(std::move(progress)));
 
   const PlanningState zeroth_step {
+    0,
     rmf_utils::nullopt,
     _progress->queue(),
     _progress->expanded_nodes(),
@@ -82,6 +85,7 @@ void PlanningInspector::step()
   
   const auto new_plan = _progress->step();
   const PlanningState new_step {
+    _planning_states.size(),
     std::move(new_plan),
     _progress->queue(),
     _progress->expanded_nodes(),
@@ -111,7 +115,7 @@ bool PlanningInspector::plan_completed() const
 
 //==============================================================================
 
-int PlanningInspector::step_num() const
+std::size_t PlanningInspector::step_num() const
 {
   return _planning_states.size();
 }
@@ -125,11 +129,63 @@ auto PlanningInspector::get_state() const -> ConstPlanningStatePtr
 
 //==============================================================================
 
-auto PlanningInspector::get_state(int step_index) const -> ConstPlanningStatePtr
+auto PlanningInspector::get_state(std::size_t step_index) const -> ConstPlanningStatePtr
 {
   if (step_index > step_num())
     return nullptr;
   return _planning_states[step_index];
+}
+
+//==============================================================================
+
+void PlanningInspector::PlanningState::print() const
+{
+  printf("STEP %zu:\n", step_index);
+
+  std::vector<std::size_t> reversed_route_so_far = 
+      {unexpanded_nodes.top()->waypoint.value()};
+  auto top_parent = unexpanded_nodes.top()->parent;
+  while (top_parent)
+  {
+    if (!top_parent->waypoint.has_value())
+      break;
+    reversed_route_so_far.push_back(top_parent->waypoint.value());
+
+    if (!top_parent->parent && top_parent->start_set_index.has_value())
+    {
+      reversed_route_so_far.push_back(top_parent->start_set_index.value());
+      break;
+    }
+    top_parent = top_parent->parent;
+  }
+
+  std::string route_string = "begin";
+  for (auto it = reversed_route_so_far.rbegin(); it != reversed_route_so_far.rend(); ++it)
+  {
+    route_string += " -> " + std::to_string(*it);
+  }
+  printf("    Current expansion:\n");
+  printf("        %s\n", route_string.c_str());
+
+  printf("    Unexpanded: %zu nodes, top: %zu\n",
+      unexpanded_nodes.size(),
+      unexpanded_nodes.top()->waypoint.value());
+  
+  printf("    Expanded: %zu nodes\n", expanded_nodes.size());
+  std::string expanded_nodes_string = "";
+  for (const auto& n : expanded_nodes)
+    expanded_nodes_string += std::to_string(n->waypoint.value()) + ", ";
+  printf("        {%s}\n", expanded_nodes_string.c_str());
+
+  printf("    Terminal: %zu nodes\n", terminal_nodes.size());
+  std::string terminal_nodes_string = "";
+  for (const auto& n : terminal_nodes)
+    terminal_nodes_string += std::to_string(n->waypoint.value()) + ", ";
+  printf("        {%s}\n", terminal_nodes_string.c_str());
+  
+  printf("\n\n");
+  if (plan)
+    printf("    PLANNING DONE!\n\n");
 }
 
 //==============================================================================
