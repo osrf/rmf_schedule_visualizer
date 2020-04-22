@@ -23,7 +23,7 @@
 #include <rmf_traffic/schedule/Database.hpp>
 #include <rmf_traffic/schedule/Participant.hpp>
 
-#include "PlanningInspector.hpp"
+#include <rmf_planning_visualizer/PlanningInspector.hpp>
 
 int main(int argc, char** argv)
 {
@@ -149,6 +149,6 @@ int main(int argc, char** argv)
 
     plan_completed = planning_inspector->plan_completed();
   }
-  
+
   return 0;
 }

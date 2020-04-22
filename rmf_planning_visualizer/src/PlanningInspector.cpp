@@ -17,7 +17,7 @@
 
 #include <cstdio>
 
-#include "PlanningInspector.hpp"
+#include <rmf_planning_visualizer/PlanningInspector.hpp>
 
 namespace rmf_planning_visualizer
 {
