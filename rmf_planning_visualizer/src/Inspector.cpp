@@ -17,37 +17,38 @@
 
 #include <cstdio>
 
-#include <rmf_planning_visualizer/PlanningInspector.hpp>
+#include "Inspector.hpp"
 
-namespace rmf_planning_visualizer
-{
+namespace rmf_visualizer {
+namespace planning {
 
-std::shared_ptr<PlanningInspector> PlanningInspector::make(
-    const Planner& planner)
+//==============================================================================
+
+auto Inspector::make(const Planner& planner) -> 
+    Inspector::SharedPtr
 {
   using Planner = rmf_traffic::agv::Planner;
   std::unique_ptr<Planner::Debug> debugger(new Planner::Debug(planner));
 
-  std::shared_ptr<PlanningInspector> planning_inspector(
-      new PlanningInspector(std::move(debugger)));
-  
+  Inspector::SharedPtr planning_inspector(
+      new Inspector(std::move(debugger)));
   return planning_inspector;
 }
 
 //==============================================================================
 
-PlanningInspector::PlanningInspector(std::unique_ptr<Planner::Debug> debugger)
+Inspector::Inspector(std::unique_ptr<Planner::Debug> debugger)
 : _debugger(std::move(debugger))
 {}
 
 //==============================================================================
 
-PlanningInspector::~PlanningInspector()
+Inspector::~Inspector()
 {}
 
 //==============================================================================
 
-bool PlanningInspector::begin(
+bool Inspector::begin(
     const std::vector<Plan::Start>& starts,
     Plan::Goal goal,
     Planner::Options options)
@@ -77,7 +78,7 @@ bool PlanningInspector::begin(
 
 //==============================================================================
 
-void PlanningInspector::step()
+void Inspector::step()
 {
   if (!_progress)
     return;
@@ -95,7 +96,7 @@ void PlanningInspector::step()
 
 //==============================================================================
 
-auto PlanningInspector::plan() const -> rmf_utils::optional<Plan>
+auto Inspector::plan() const -> rmf_utils::optional<Plan>
 {
   if (_planning_states.empty())
     return rmf_utils::nullopt;
@@ -104,7 +105,7 @@ auto PlanningInspector::plan() const -> rmf_utils::optional<Plan>
 
 //==============================================================================
 
-bool PlanningInspector::plan_completed() const
+bool Inspector::plan_completed() const
 {
   if (plan())
     return true;
@@ -113,21 +114,21 @@ bool PlanningInspector::plan_completed() const
 
 //==============================================================================
 
-std::size_t PlanningInspector::step_num() const
+std::size_t Inspector::step_num() const
 {
   return _planning_states.size();
 }
 
 //==============================================================================
 
-auto PlanningInspector::get_state() const -> ConstPlanningStatePtr
+auto Inspector::get_state() const -> ConstPlanningStatePtr
 {
   return _planning_states.back();
 }
 
 //==============================================================================
 
-auto PlanningInspector::get_state(std::size_t step_index) const -> ConstPlanningStatePtr
+auto Inspector::get_state(std::size_t step_index) const -> ConstPlanningStatePtr
 {
   if (step_index > step_num())
     return nullptr;
@@ -136,7 +137,7 @@ auto PlanningInspector::get_state(std::size_t step_index) const -> ConstPlanning
 
 //==============================================================================
 
-void PlanningInspector::PlanningState::print_plan(
+void Inspector::PlanningState::print_plan(
     const Planner::Debug::ConstNodePtr& node) const
 {
   std::string expanded_nodes_string = 
@@ -158,7 +159,7 @@ void PlanningInspector::PlanningState::print_plan(
 
 //==============================================================================
 
-void PlanningInspector::PlanningState::print() const
+void Inspector::PlanningState::print() const
 {
   printf("STEP %zu:\n", step_index);
   for (const auto& n : expanded_nodes)
@@ -171,4 +172,5 @@ void PlanningInspector::PlanningState::print() const
 
 //==============================================================================
 
-} // namespace rmf_planning_visualizer
+} // namespace planning
+} // namespace rmf_visualizer

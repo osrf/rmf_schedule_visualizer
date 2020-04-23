@@ -15,8 +15,8 @@
  *
 */
 
-#ifndef RMF_PLANNING_VISUALIZER__SRC__PLANNINGINSPECTOR_HPP
-#define RMF_PLANNING_VISUALIZER__SRC__PLANNINGINSPECTOR_HPP
+#ifndef RMF_PLANNING_VISUALIZER__SRC__INSPECTOR_HPP
+#define RMF_PLANNING_VISUALIZER__SRC__INSPECTOR_HPP
 
 #include <string>
 #include <memory>
@@ -27,23 +27,22 @@
 #include <rmf_traffic/agv/Planner.hpp>
 #include <rmf_traffic/agv/debug/Planner.hpp>
 
-#include <rclcpp/node.hpp>
+namespace rmf_visualizer {
+namespace planning { 
 
-namespace rmf_planning_visualizer
-{
-
-class PlanningInspector
+class Inspector
 {
 
 public:
 
+  using SharedPtr = std::shared_ptr<Inspector>;
   using Plan = rmf_traffic::agv::Plan;
   using Planner = rmf_traffic::agv::Planner;
   using Node = Planner::Debug::Node;
 
-  static std::shared_ptr<PlanningInspector> make(const Planner& planner);
+  static SharedPtr make(const Planner& planner);
 
-  ~PlanningInspector();
+  ~Inspector();
 
   bool begin(
       const std::vector<Plan::Start>& starts,
@@ -86,10 +85,11 @@ private:
 
   std::vector<ConstPlanningStatePtr> _planning_states;
 
-  PlanningInspector(std::unique_ptr<Planner::Debug> debugger);
+  Inspector(std::unique_ptr<Planner::Debug> debugger);
 
 };
 
-} // namespace rmf_planning_visualizer
+} // namespace planning
+} // namespace rmf_visualizer
 
-#endif // RMF_PLANNING_VISUALIZER__SRC__PLANNINGINSPECTOR_HPP
+#endif // RMF_PLANNING_VISUALIZER__SRC__INSPECTOR_HPP
