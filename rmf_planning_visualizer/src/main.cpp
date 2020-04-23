@@ -15,20 +15,18 @@
  *
 */
 
-#include <chrono>
-#include <cstdio>
 #include <iostream>
 
 #include <rmf_traffic/geometry/Circle.hpp>
 #include <rmf_traffic/schedule/Database.hpp>
 #include <rmf_traffic/schedule/Participant.hpp>
 
-#include <rmf_planning_visualizer/PlanningInspector.hpp>
+#include "Inspector.hpp"
+#include "Server.hpp"
 
 int main(int argc, char** argv)
 {
   const std::string test_map_name = "test_map";
-
   rmf_traffic::agv::Graph graph_b;
   graph_b.add_waypoint(test_map_name, {14.052, -23.840}); // 0
   graph_b.add_waypoint(test_map_name, {14.081, -21.636}); // 1
@@ -47,7 +45,6 @@ int main(int argc, char** argv)
   graph_b.add_waypoint(test_map_name, {11.892, -15.379}); // 14
   graph_b.add_waypoint(test_map_name, {16.876, -15.313}); // 15
   graph_b.add_waypoint(test_map_name, {11.829, -19.079}); // 16
-
   graph_b.add_lane(0, 1);
   graph_b.add_lane(1, 0);
   graph_b.add_lane(1, 2);
@@ -82,20 +79,15 @@ int main(int argc, char** argv)
   graph_b.add_lane(16, 14);
   graph_b.add_lane(16, 13);
   graph_b.add_lane(13, 16);
-
   const auto profile_b = rmf_traffic::Profile{
     rmf_traffic::geometry::make_final_convex<
       rmf_traffic::geometry::Circle>(0.3)
   };
-
   const auto traits_b = rmf_traffic::agv::VehicleTraits{
     {0.4, 3.0}, {0.4, 4.0}, profile_b
   };
-
   const rmf_traffic::agv::Planner::Configuration config_b{graph_b, traits_b};
-
   rmf_traffic::schedule::Database database;
-
   auto b1 = rmf_traffic::schedule::make_participant(
       rmf_traffic::schedule::ParticipantDescription{
           "b1",
@@ -103,15 +95,6 @@ int main(int argc, char** argv)
           rmf_traffic::schedule::ParticipantDescription::Rx::Responsive,
           profile_b
       }, database);
-
-  auto b2 = rmf_traffic::schedule::make_participant(
-      rmf_traffic::schedule::ParticipantDescription{
-          "b2",
-          "fleet_b",
-          rmf_traffic::schedule::ParticipantDescription::Rx::Responsive,
-          profile_b
-      }, database);
-
   rmf_traffic::agv::Planner planner_b(
       config_b,
       rmf_traffic::agv::Planner::Options(
@@ -120,35 +103,11 @@ int main(int argc, char** argv)
       ));
 
   auto planning_inspector = 
-      rmf_planning_visualizer::PlanningInspector::make(planner_b);
+      rmf_visualizer::planning::Inspector::make(planner_b);
+  
+  auto planning_visualizer_server =
+      rmf_visualizer::planning::Server::make(8008, std::move(planning_inspector));
 
-  const auto time = std::chrono::steady_clock::now();
-
-  auto b1_starts = rmf_traffic::agv::compute_plan_starts(
-      graph_b, {16.858, -15.758, -M_PI/2.0}, time);
-  auto b2_starts = rmf_traffic::agv::compute_plan_starts(
-      graph_b, {16.83, -17.26, -M_PI/2.0}, time);
-
-  bool started = 
-      planning_inspector->begin(
-          b1_starts, {11}, planner_b.get_default_options());
-  if (!started)
-  {
-    std::cout << "<ERROR> planning_inspector can't begin plan" << std::endl;
-    return 1;
-  }
-
-  bool plan_completed = false;
-  while (!plan_completed)
-  {
-    planning_inspector->step();
-
-    int step_num = planning_inspector->step_num();
-    auto planning_state = planning_inspector->get_state();
-    planning_state->print();
-
-    plan_completed = planning_inspector->plan_completed();
-  }
-
+  std::cout << "all done" << std::endl;
   return 0;
 }

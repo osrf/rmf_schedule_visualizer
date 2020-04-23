@@ -13,63 +13,52 @@ include(GNUInstallDirs)
 
 find_package(ament_cmake REQUIRED)
 find_package(rmf_traffic REQUIRED)
-find_package(rclcpp REQUIRED)
 find_package(websocketpp REQUIRED)
+find_package(visualizer_utils REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system date_time regex random)
 
 #===============================================================================
 
-add_library(rmf_planning_inspector SHARED
-  src/PlanningInspector.cpp
+add_executable(planning_visualizer_server
+  src/main.cpp
+  src/Inspector.cpp
+  src/Server.cpp
 )
-target_link_libraries(rmf_planning_inspector
-  PUBLIC
+target_link_libraries(planning_visualizer_server
+  PRIVATE
     rmf_traffic::rmf_traffic
+    visualizer_utils::visualizer_utils
+    Boost::system
+    Boost::date_time
+    Boost::regex
+    Boost::random
 )
-target_include_directories(rmf_planning_inspector
+target_include_directories(planning_visualizer_server
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
-ament_export_interfaces(rmf_planning_inspector HAS_LIBRARY_TARGET)
-ament_export_dependencies(rmf_traffic)
-
-#===============================================================================
-
-add_executable(rmf_planning_visualizer
-  src/planning_visualizer_node.cpp
-)
-target_link_libraries(rmf_planning_visualizer
-  PRIVATE
-    rmf_planning_inspector
-    ${rclcpp_LIBRARIES}
-)
-target_include_directories(rmf_planning_visualizer
-  PUBLIC
-    ${rclcpp_INCLUDE_DIRS}
+    ${visualizer_utils_INCLUDE_DIRS}
+    ${websocketpp_INCLUDE_DIR}
 )
 
 #===============================================================================
 
 add_executable(test_inspector
-  src/test_planning_inspector.cpp
+  src/test_inspector.cpp
+  src/Inspector.cpp
 )
 target_link_libraries(test_inspector
   PRIVATE
     rmf_traffic::rmf_traffic
-    rmf_planning_inspector
 )
 
 #===============================================================================
 
 install(
-  DIRECTORY include/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-
-install(
-  TARGETS rmf_planning_inspector test_inspector
-  EXPORT rmf_planning_inspector
+  TARGETS 
+    planning_visualizer_server
+    test_inspector
+  EXPORT
   RUNTIME DESTINATION lib/${PROJECT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
