@@ -64,25 +64,12 @@ void Server::init(uint16_t port)
   _ws_server.set_reuse_addr(true);
   _ws_server.listen(port);
   _ws_server.start_accept();
-  _server_thread = std::thread([&]()
+  _ws_server_thread = std::thread([&]()
   {
     this->_ws_server.run();
   });
 
   _is_initialized = true;
-}
-
-//==============================================================================
-
-void Server::on_message(connection_hdl hdl, server::message_ptr msg)
-{
-  std::string response = "";
-
-  if (msg->get_payload().empty())
-  {
-    printf("Empty request received...\n");
-    return;
-  }
 }
 
 //==============================================================================
@@ -94,7 +81,86 @@ Server::Server(Inspector::SharedPtr inspector)
 //==============================================================================
 
 Server::~Server()
-{}
+{
+  if (!_is_initialized)
+    return;
+
+  // Thread safe access to _ws_connections
+  const auto connection_copies = _ws_connections;
+  for (auto& c : connection_copies)
+  {
+    _ws_server.close(c, websocketpp::close::status::normal, "shutdown");
+  }
+
+  if (_ws_server_thread.joinable())
+  {
+    _ws_server.stop();
+    _ws_server_thread.join();
+  }
+}
+
+//==============================================================================
+
+void Server::on_message(connection_hdl hdl, server::message_ptr msg)
+{
+  if (msg->get_payload().empty())
+  {
+    printf("Empty request received...\n");
+    return;
+  }
+
+  auto request_type = get_request_type(msg);
+  std::string response = "";
+  switch(request_type)
+  {
+    case RequestType::Forward: 
+      get_forward_response(msg, response); break;
+    case RequestType::Backward: 
+      get_backward_response(msg, response); break;
+    case RequestType::StepIndex:
+      get_step_index_response(msg, response); break;
+    default: {
+      printf("Undefined request type received...\n");
+      break;
+    }
+  }
+
+  printf("Response: %s", response.c_str());
+  server::message_ptr response_msg = std::move(msg);
+  response_msg->set_payload(response);
+  _ws_server.send(hdl, response_msg);
+}
+
+//==============================================================================
+
+auto Server::get_request_type(const server::message_ptr& msg) 
+    -> Server::RequestType
+{
+  return RequestType::Forward;
+}
+
+//==============================================================================
+
+void Server::get_forward_response(
+    const server::message_ptr& msg, std::string& response)
+{
+}
+
+//==============================================================================
+
+void Server::get_backward_response(
+    const server::message_ptr& msg, std::string& response)
+{
+}
+
+//==============================================================================
+
+void Server::get_step_index_response(
+    const server::message_ptr& msg, std::string& response)
+{
+}
+
+//==============================================================================
 
 } // planning
 } // rmf_visualizer
