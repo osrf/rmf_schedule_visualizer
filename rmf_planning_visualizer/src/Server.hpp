@@ -49,20 +49,37 @@ public:
 
   void init(uint16_t port);
 
+  enum class RequestType : uint8_t
+  {
+    Forward,
+    Backward,
+    StepIndex
+  };
+
 private:
 
   bool _is_initialized = false;
 
   Inspector::SharedPtr _inspector;
 
-  std::thread _server_thread;
-
   // Websocket plumbing
   server _ws_server;
   std::set<connection_hdl, std::owner_less<connection_hdl>> _ws_connections;
   uint16_t _ws_port;
+  std::thread _ws_server_thread;
 
   void on_message(connection_hdl hdl, server::message_ptr msg);
+
+  RequestType get_request_type(const server::message_ptr& msg);
+
+  void get_forward_response(
+      const server::message_ptr& msg, std::string& response);
+
+  void get_backward_response(
+      const server::message_ptr& msg, std::string& response);
+
+  void get_step_index_response(
+      const server::message_ptr& msg, std::string& response);
 
   Server(Inspector::SharedPtr inspector);
 
