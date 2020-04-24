@@ -22,6 +22,8 @@
 #include <memory>
 #include <vector>
 
+#include <boost/functional/hash.hpp>
+
 #include <rmf_utils/optional.hpp>
 
 #include <rmf_traffic/agv/Planner.hpp>
@@ -64,7 +66,6 @@ public:
     void print_plan(const Planner::Debug::ConstNodePtr& node) const;
 
     void print() const;
-
   };
 
   rmf_utils::optional<Plan> plan() const;

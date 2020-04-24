@@ -42,6 +42,7 @@ public:
   using Planner = rmf_traffic::agv::Planner;
   using server = websocketpp::server<websocketpp::config::asio>;
   using connection_hdl = websocketpp::connection_hdl;
+  using json = nlohmann::json;
 
   static SharedPtr make(uint16_t port, Inspector::SharedPtr inspector);
 
@@ -81,9 +82,16 @@ private:
   void get_step_index_response(
       const server::message_ptr& msg, std::string& response);
 
+  void plan_state_to_segments(
+      const ConstPlanningStatePtr& plan_state, 
+      std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& segments);
+
   Server(Inspector::SharedPtr inspector);
 
   // Templates used for response generation
+  const json _j_res = { {"response", {}}, {"values", {}} };
+  const json _j_point = { {"x", {}}, {"y", {}}, {"yaw", {}} };
+  const json _j_segment = { {"begin", {}}, {"end", {}} };
 };
 
 } // namespace planning
