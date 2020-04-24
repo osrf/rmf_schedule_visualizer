@@ -22,6 +22,7 @@ find_package(Boost REQUIRED COMPONENTS system date_time regex random)
 add_executable(planning_visualizer_server
   src/main.cpp
   src/Inspector.cpp
+  src/Tree.cpp
   src/Server.cpp
 )
 target_link_libraries(planning_visualizer_server

@@ -82,9 +82,9 @@ private:
   void get_step_index_response(
       const server::message_ptr& msg, std::string& response);
 
-  void plan_state_to_segments(
-      const ConstPlanningStatePtr& plan_state, 
-      std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& segments);
+  // void plan_state_to_segments(
+  //     const ConstPlanningStatePtr& plan_state, 
+  //     std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& segments);
 
   Server(Inspector::SharedPtr inspector);
 
