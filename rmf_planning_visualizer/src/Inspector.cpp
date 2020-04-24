@@ -24,8 +24,7 @@ namespace planning {
 
 //==============================================================================
 
-auto Inspector::make(const Planner& planner) -> 
-    Inspector::SharedPtr
+auto Inspector::make(const Planner& planner) -> SharedPtr
 {
   using Planner = rmf_traffic::agv::Planner;
   std::unique_ptr<Planner::Debug> debugger(new Planner::Debug(planner));
