@@ -24,10 +24,10 @@ namespace planning {
 
 //==============================================================================
 
-auto Server::make(uint16_t port, Inspector::SharedPtr inspector)
+auto Server::make(std::string node_name, uint16_t port)
     -> Server::SharedPtr
 {
-  Server::SharedPtr server(new Server(std::move(inspector)));
+  Server::SharedPtr server(new Server(std::move(node_name)));
   try
   {
     server->init(port);
@@ -44,6 +44,19 @@ auto Server::make(uint16_t port, Inspector::SharedPtr inspector)
 
 void Server::init(uint16_t port)
 {
+  // Warm start to get the building map
+  auto transient_qos_profile = rclcpp::QoS(10);
+  transient_qos_profile.transient_local();
+  _map_sub = create_subscription<BuildingMap>(
+      "/map",
+      transient_qos_profile,
+      [&](BuildingMap::UniquePtr msg)
+      {
+        update_graph(std::move(msg));
+      });
+  
+  // Set up the planner with default values
+
   using websocketpp::lib::placeholders::_1;
   using websocketpp::lib::placeholders::_2;
   using websocketpp::lib::bind;
@@ -74,8 +87,8 @@ void Server::init(uint16_t port)
 
 //==============================================================================
 
-Server::Server(Inspector::SharedPtr inspector)
-: _inspector(std::move(inspector))
+Server::Server(std::string node_name)
+: Node(std::move(node_name))
 {}
 
 //==============================================================================
@@ -101,6 +114,14 @@ Server::~Server()
 
 //==============================================================================
 
+void Server::update_graph(BuildingMap::UniquePtr msg)
+{
+  std::lock_guard<std::mutex> guard(_mutex);
+  RCLCPP_INFO(get_logger(), "updating graph.");
+}
+
+//==============================================================================
+
 void Server::on_message(connection_hdl hdl, server::message_ptr msg)
 {
   if (msg->get_payload().empty())
@@ -113,6 +134,8 @@ void Server::on_message(connection_hdl hdl, server::message_ptr msg)
   std::string response = "";
   switch(request_type)
   {
+    case RequestType::PlannerConfig:
+      get_planner_config_response(msg, response); break;
     case RequestType::Forward: 
       get_forward_response(msg, response); break;
     case RequestType::Backward: 
@@ -137,6 +160,13 @@ auto Server::get_request_type(const server::message_ptr& msg)
     -> Server::RequestType
 {
   return RequestType::Forward;
+}
+
+//==============================================================================
+
+void Server::get_planner_config_response(
+      const server::message_ptr& msg, std::string& response)
+{
 }
 
 //==============================================================================
