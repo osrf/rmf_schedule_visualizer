@@ -16,13 +16,13 @@ find_package(rmf_traffic REQUIRED)
 find_package(websocketpp REQUIRED)
 find_package(visualizer_utils REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system date_time regex random)
+find_package(Eigen3 REQUIRED)
 
 #===============================================================================
 
 add_executable(planning_visualizer_server
   src/main.cpp
   src/Inspector.cpp
-  src/Tree.cpp
   src/Server.cpp
 )
 target_link_libraries(planning_visualizer_server
@@ -39,7 +39,7 @@ target_include_directories(planning_visualizer_server
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     ${visualizer_utils_INCLUDE_DIRS}
-    ${websocketpp_INCLUDE_DIR}
+    ${websocketpp_INCLUDE_DIRS}
 )
 
 #===============================================================================

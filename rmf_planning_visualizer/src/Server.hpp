@@ -52,6 +52,7 @@ public:
 
   enum class RequestType : uint8_t
   {
+    PlannerConfig,
     Forward,
     Backward,
     StepIndex
@@ -82,16 +83,20 @@ private:
   void get_step_index_response(
       const server::message_ptr& msg, std::string& response);
 
-  // void plan_state_to_segments(
-  //     const ConstPlanningStatePtr& plan_state, 
-  //     std::vector<std::pair<Eigen::Vector3d, Eigen::Vector3d>>& segments);
+  std::string parse_planning_state(
+      const Inspector::ConstPlanningStatePtr& state) const;
 
   Server(Inspector::SharedPtr inspector);
 
   // Templates used for response generation
-  const json _j_res = { {"response", {}}, {"values", {}} };
-  const json _j_point = { {"x", {}}, {"y", {}}, {"yaw", {}} };
-  const json _j_segment = { {"begin", {}}, {"end", {}} };
+  const json _j_res = { {"response", {}}, {"values", {}}};
+  const json _j_traj =
+      { {"id", {}}, {"shape", {}}, {"dimensions", {}}, {"segments", {}}};
+  const json _j_seg = { {"x", {}}, {"v", {}}, {"t", {}}};
+
+  const json _j_traits = 
+      { {"radius", {}}, {"linear_limits", {}}, {"angular_limits", {}} };
+  const json _j_limits = { {"velocity", {}}, {"acceleration", {}} };
 };
 
 } // namespace planning

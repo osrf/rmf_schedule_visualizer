@@ -46,6 +46,8 @@ public:
 
   ~Inspector();
 
+  void planner(const Planner& planner);
+
   bool begin(
       const std::vector<Plan::Start>& starts,
       Plan::Goal goal,

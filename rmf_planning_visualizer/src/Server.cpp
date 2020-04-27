@@ -162,5 +162,14 @@ void Server::get_step_index_response(
 
 //==============================================================================
 
+std::string Server::parse_planning_state(
+    const Inspector::ConstPlanningStatePtr& state) const
+{
+  std::string result;
+  return result;
+}
+
+//==============================================================================
+
 } // planning
 } // rmf_visualizer

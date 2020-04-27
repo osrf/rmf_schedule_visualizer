@@ -21,6 +21,8 @@
 #include <vector>
 #include <memory>
 
+#include <boost/functional/hash.hpp>
+
 #include "Inspector.hpp"
 
 namespace rmf_visualizer {
@@ -53,11 +55,15 @@ public:
 
   const Branches& get_branches() const;
 
+  const Branches& get_plan_branches() const;
+
 private:
 
   Branches _branches;
 
-  Tree(Branches _branches);
+  Branches _plan_branches;
+
+  Tree(Branches _branches, Branches _plan_branches);
 
 };
 
