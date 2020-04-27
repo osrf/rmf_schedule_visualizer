@@ -19,32 +19,39 @@
 #define RMF_PLANNING_VISUALIZER__SRC__SERVER__SERVER_HPP
 
 #include <set>
+#include <mutex>
 #include <memory>
+
+#include <rclcpp/node.hpp>
+#include <building_map_msgs/msg/building_map.hpp>
 
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 
-#include <visualizer_utils/json.hpp>
-
+#include <rmf_traffic/agv/Graph.hpp>
 #include <rmf_traffic/agv/Planner.hpp>
+#include <rmf_traffic/schedule/Database.hpp>
+#include <rmf_traffic/schedule/Participant.hpp>
+
+#include <visualizer_utils/json.hpp>
 
 #include "Inspector.hpp"
 
 namespace rmf_visualizer {
 namespace planning {
 
-class Server
+class Server : public rclcpp::Node
 {
 
 public:
 
-  using SharedPtr = std::shared_ptr<Server>;
-  using Planner = rmf_traffic::agv::Planner;
   using server = websocketpp::server<websocketpp::config::asio>;
   using connection_hdl = websocketpp::connection_hdl;
   using json = nlohmann::json;
 
-  static SharedPtr make(uint16_t port, Inspector::SharedPtr inspector);
+  using BuildingMap = building_map_msgs::msg::BuildingMap;
+
+  static std::shared_ptr<Server> make(std::string node_name, uint16_t port);
 
   ~Server();
 
@@ -58,11 +65,34 @@ public:
     StepIndex
   };
 
+  struct PlanningComponents
+  {
+    rmf_traffic::Profile vehicle_profile;
+
+    rmf_traffic::agv::VehicleTraits vehicle_traits;
+
+    std::vector<rmf_traffic::agv::Graph> graph;
+
+    rmf_traffic::schedule::Database database;
+
+    rmf_traffic::schedule::Participant participant;
+
+    rmf_traffic::agv::Planner planner;
+  };
+
 private:
 
   bool _is_initialized = false;
 
+  // Planning server components
+  std::mutex _planning_mutex;
+  std::unique_ptr<PlanningComponents> _planning_components;
   Inspector::SharedPtr _inspector;
+
+  // ROS2 plumbing
+  rclcpp::Subscription<BuildingMap>::SharedPtr _map_sub;
+
+  void update_graph(BuildingMap::UniquePtr msg);
 
   // Websocket plumbing
   server _ws_server;
@@ -72,21 +102,24 @@ private:
 
   void on_message(connection_hdl hdl, server::message_ptr msg);
 
-  RequestType get_request_type(const server::message_ptr& msg);
+  // RequestType get_request_type(const server::message_ptr& msg);
 
-  void get_forward_response(
-      const server::message_ptr& msg, std::string& response);
+  // void get_planner_config_response(
+  //       const server::message_ptr& msg, std::string& response);
 
-  void get_backward_response(
-      const server::message_ptr& msg, std::string& response);
+  // void get_forward_response(
+  //     const server::message_ptr& msg, std::string& response);
 
-  void get_step_index_response(
-      const server::message_ptr& msg, std::string& response);
+  // void get_backward_response(
+  //     const server::message_ptr& msg, std::string& response);
 
-  std::string parse_planning_state(
-      const Inspector::ConstPlanningStatePtr& state) const;
+  // void get_step_index_response(
+  //     const server::message_ptr& msg, std::string& response);
 
-  Server(Inspector::SharedPtr inspector);
+  // std::string parse_planning_state(
+  //     const Inspector::ConstPlanningStatePtr& state) const;
+
+  Server(std::string node_name);
 
   // Templates used for response generation
   const json _j_res = { {"response", {}}, {"values", {}}};
