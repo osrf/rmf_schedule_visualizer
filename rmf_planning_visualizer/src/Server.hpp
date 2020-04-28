@@ -22,7 +22,7 @@
 #include <mutex>
 #include <memory>
 
-#include <rclcpp/node.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <building_map_msgs/msg/building_map.hpp>
 
 #include <websocketpp/config/asio_no_tls.hpp>
@@ -40,7 +40,7 @@
 namespace rmf_visualizer {
 namespace planning {
 
-class Server : public rclcpp::Node
+class Server
 {
 
 public:
@@ -55,7 +55,11 @@ public:
 
   ~Server();
 
-  void init(uint16_t port);
+  void init_ros(std::string node_name);
+
+  void init_websocket(uint16_t port);
+
+  void start();
 
   enum class RequestType : uint8_t
   {
@@ -71,7 +75,8 @@ public:
 
     rmf_traffic::agv::VehicleTraits vehicle_traits;
 
-    std::vector<rmf_traffic::agv::Graph> graph;
+    using Graphs = std::vector<rmf_traffic::agv::Graph>;
+    std::unordered_map<std::string, Graphs> graph_map;
 
     rmf_traffic::schedule::Database database;
 
@@ -90,6 +95,7 @@ private:
   Inspector::SharedPtr _inspector;
 
   // ROS2 plumbing
+  rclcpp::Node::SharedPtr _node;
   rclcpp::Subscription<BuildingMap>::SharedPtr _map_sub;
 
   void update_graph(BuildingMap::UniquePtr msg);
@@ -102,24 +108,24 @@ private:
 
   void on_message(connection_hdl hdl, server::message_ptr msg);
 
-  // RequestType get_request_type(const server::message_ptr& msg);
+  RequestType get_request_type(const server::message_ptr& msg);
 
-  // void get_planner_config_response(
-  //       const server::message_ptr& msg, std::string& response);
+  void get_planner_config_response(
+        const server::message_ptr& msg, std::string& response);
 
-  // void get_forward_response(
-  //     const server::message_ptr& msg, std::string& response);
+  void get_forward_response(
+      const server::message_ptr& msg, std::string& response);
 
-  // void get_backward_response(
-  //     const server::message_ptr& msg, std::string& response);
+  void get_backward_response(
+      const server::message_ptr& msg, std::string& response);
 
-  // void get_step_index_response(
-  //     const server::message_ptr& msg, std::string& response);
+  void get_step_index_response(
+      const server::message_ptr& msg, std::string& response);
 
-  // std::string parse_planning_state(
-  //     const Inspector::ConstPlanningStatePtr& state) const;
+  std::string parse_planning_state(
+      const Inspector::ConstPlanningStatePtr& state) const;
 
-  Server(std::string node_name);
+  Server();
 
   // Templates used for response generation
   const json _j_res = { {"response", {}}, {"values", {}}};
