@@ -75,8 +75,8 @@ public:
 
     rmf_traffic::agv::VehicleTraits vehicle_traits;
 
-    using Graphs = std::vector<rmf_traffic::agv::Graph>;
-    std::unordered_map<std::string, Graphs> graph_map;
+    std::unordered_map<std::string, std::vector<rmf_traffic::agv::Graph>> 
+        graph_map;
 
     rmf_traffic::schedule::Database database;
 
