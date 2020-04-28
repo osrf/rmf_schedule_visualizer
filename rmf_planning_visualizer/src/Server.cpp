@@ -18,6 +18,8 @@
 #include <cstdio>
 #include <chrono>
 
+#include <building_map_msgs/msg/graph_edge.hpp>
+
 #include "Server.hpp"
 
 namespace rmf_visualizer {
@@ -142,16 +144,36 @@ Server::~Server()
 void Server::update_graph(BuildingMap::UniquePtr msg)
 {
   std::lock_guard<std::mutex> guard(_planning_mutex);
-  std::unordered_map<std::string, Server::PlanningComponents::Graphs>
+  std::unordered_map<std::string, std::vector<rmf_traffic::agv::Graph>>
       graph_map;
   
   for (const auto& l : msg->levels)
   {
-    Server::PlanningComponents::Graphs new_graphs;
+    std::vector<rmf_traffic::agv::Graph> graph_set;
     for (const auto& g : l.nav_graphs)
     {
       rmf_traffic::agv::Graph new_graph;
+      for (const auto& v : g.vertices)
+      {
+        new_graph.add_waypoint(l.name, {v.x, v.y});
+      }
+      for (const auto& e : g.edges)
+      {
+        using GraphEdge = building_map_msgs::msg::GraphEdge;
+        if (e.edge_type == GraphEdge::EDGE_TYPE_BIDIRECTIONAL)
+        {
+          new_graph.add_lane(e.v1_idx, e.v2_idx);
+          new_graph.add_lane(e.v2_idx, e.v1_idx);
+        }
+        else
+        {
+          new_graph.add_lane(e.v1_idx, e.v2_idx);
+        }
+      }
+
+      graph_set.push_back(new_graph);
     }
+    graph_map[l.name] = graph_set;
   }
 
   RCLCPP_INFO(_node->get_logger(), "updating graph.");
