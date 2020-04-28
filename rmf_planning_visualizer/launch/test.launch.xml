@@ -1,0 +1,19 @@
+<?xml version='1.0' ?>
+
+<launch>
+
+  <arg name="use_sim_time" default="false" description="Use the /clock topic for time to sync with simulation"/>
+  <!-- <arg name="config_file" description="Building description file required by building_map_tools"/> -->
+
+  <!-- Building Map  -->
+  <group>
+    <node pkg="building_map_tools" exec="building_map_server"
+        args="/home/aaron/workspaces/repos/rmf_demos/rmf_demo_maps/maps/airport_terminal/airport_terminal.building.yaml"/>
+  </group>
+
+  <!-- Visualizer -->
+  <group>
+    <node pkg="rmf_planning_visualizer" exec="planning_visualizer_server"/>
+  </group>
+
+</launch>

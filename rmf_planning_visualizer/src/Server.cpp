@@ -16,6 +16,7 @@
 */
 
 #include <cstdio>
+#include <chrono>
 
 #include "Server.hpp"
 
@@ -25,12 +26,14 @@ namespace planning {
 //==============================================================================
 
 auto Server::make(std::string node_name, uint16_t port)
-    -> Server::SharedPtr
+    -> std::shared_ptr<Server>
 {
-  Server::SharedPtr server(new Server(std::move(node_name)));
+  std::shared_ptr<Server> server(new Server);
+
   try
   {
-    server->init(port);
+    server->init_ros(std::move(node_name));
+    server->init_websocket(port);
   }
   catch (std::exception& e)
   {
@@ -42,12 +45,14 @@ auto Server::make(std::string node_name, uint16_t port)
 
 //==============================================================================
 
-void Server::init(uint16_t port)
+void Server::init_ros(std::string node_name)
 {
+  _node = rclcpp::Node::make_shared(std::move(node_name));
+
   // Warm start to get the building map
-  auto transient_qos_profile = rclcpp::QoS(10);
+  auto transient_qos_profile = rclcpp::QoS(1);
   transient_qos_profile.transient_local();
-  _map_sub = create_subscription<BuildingMap>(
+  _map_sub = _node->create_subscription<BuildingMap>(
       "/map",
       transient_qos_profile,
       [&](BuildingMap::UniquePtr msg)
@@ -55,8 +60,24 @@ void Server::init(uint16_t port)
         update_graph(std::move(msg));
       });
   
-  // Set up the planner with default values
+  _planning_components = nullptr;
+  const auto stop_time =
+      std::chrono::steady_clock::now() + std::chrono::seconds(5);
+  while (rclcpp::ok() && std::chrono::steady_clock::now() < stop_time)
+  {
+    rclcpp::spin_some(_node);
+    if (_planning_components)
+      break;
+  }
+  if (!_planning_components)
+    throw std::runtime_error(
+        "Unable to initialize: [No BuildingMap message received.]");
+}
 
+//==============================================================================
+
+void Server::init_websocket(uint16_t port)
+{
   using websocketpp::lib::placeholders::_1;
   using websocketpp::lib::placeholders::_2;
   using websocketpp::lib::bind;
@@ -76,27 +97,31 @@ void Server::init(uint16_t port)
 
   _ws_server.set_reuse_addr(true);
   _ws_server.listen(port);
+}
+
+//==============================================================================
+
+void Server::start()
+{
   _ws_server.start_accept();
   _ws_server_thread = std::thread([&]()
   {
     this->_ws_server.run();
   });
 
-  _is_initialized = true;
+  rclcpp::spin(_node);
 }
 
 //==============================================================================
 
-Server::Server(std::string node_name)
-: Node(std::move(node_name))
+Server::Server()
 {}
 
 //==============================================================================
 
 Server::~Server()
 {
-  if (!_is_initialized)
-    return;
+  rclcpp::shutdown();
 
   // Thread safe access to _ws_connections
   const auto connection_copies = _ws_connections;
@@ -116,8 +141,20 @@ Server::~Server()
 
 void Server::update_graph(BuildingMap::UniquePtr msg)
 {
-  std::lock_guard<std::mutex> guard(_mutex);
-  RCLCPP_INFO(get_logger(), "updating graph.");
+  std::lock_guard<std::mutex> guard(_planning_mutex);
+  std::unordered_map<std::string, Server::PlanningComponents::Graphs>
+      graph_map;
+  
+  for (const auto& l : msg->levels)
+  {
+    Server::PlanningComponents::Graphs new_graphs;
+    for (const auto& g : l.nav_graphs)
+    {
+      rmf_traffic::agv::Graph new_graph;
+    }
+  }
+
+  RCLCPP_INFO(_node->get_logger(), "updating graph.");
 }
 
 //==============================================================================
