@@ -63,10 +63,11 @@ public:
 
   enum class RequestType : uint8_t
   {
-    PlannerConfig,
+    StartPlanning,
     Forward,
     Backward,
     StepIndex,
+    PlannerConfig,
     Undefined
   };
 
@@ -98,6 +99,7 @@ private:
 
   // Planning server components
   std::mutex _planning_mutex;
+  std::size_t _planning_step;
   std::unique_ptr<PlanningComponents> _planning_components;
   Inspector::SharedPtr _inspector;
 
@@ -118,7 +120,10 @@ private:
   RequestType get_request_type(const server::message_ptr& msg);
 
   void get_planner_config_response(
-        const server::message_ptr& msg, std::string& response);
+      const server::message_ptr& msg, std::string& response);
+
+  void get_start_planning_response(
+      const server::message_ptr& msg, std::string& response);
 
   void get_forward_response(
       const server::message_ptr& msg, std::string& response);
