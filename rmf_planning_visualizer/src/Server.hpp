@@ -66,11 +66,18 @@ public:
     PlannerConfig,
     Forward,
     Backward,
-    StepIndex
+    StepIndex,
+    Undefined
   };
 
   struct PlanningComponents
   {
+    std::string level_name;
+
+    // TODO: remember to swap out to use std::string when we start using strings
+    // instead of indices.
+    size_t graph_index;
+
     rmf_traffic::Profile vehicle_profile;
 
     rmf_traffic::agv::VehicleTraits vehicle_traits;
@@ -128,7 +135,7 @@ private:
   Server();
 
   // Templates used for response generation
-  const json _j_res = { {"response", {}}, {"values", {}}};
+  const json _j_res = { {"response", {}}, {"values", {}}, {"error", {}} };
   const json _j_traj =
       { {"id", {}}, {"shape", {}}, {"dimensions", {}}, {"segments", {}}};
   const json _j_seg = { {"x", {}}, {"v", {}}, {"t", {}}};
