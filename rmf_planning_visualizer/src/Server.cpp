@@ -245,6 +245,8 @@ void Server::on_message(connection_hdl hdl, server::message_ptr msg)
   std::string response = "";
   switch(request_type)
   {
+    case RequestType::StartPlanning:
+      get_start_planning_response(msg, response); break;
     case RequestType::Forward: 
       get_forward_response(msg, response); break;
     case RequestType::Backward: 
@@ -279,7 +281,17 @@ auto Server::get_request_type(const server::message_ptr& msg)
     if (j.size() != 2 || j.count("request") != 1 || j.count("param") != 1)
       return RequestType::Undefined;
 
-    if (j["request"] == "forward")
+    if (j["request"] == "start_planning" && 
+        j["param"].count("begin") == 1 &&
+        j["param"]["begin"].count("x") == 1 &&
+        j["param"]["begin"].count("y") == 1 && 
+        j["param"]["begin"].count("yaw") == 1 &&
+        j["param"].count("end") == 1 && 
+        j["param"]["end"].count("x") == 1 &&
+        j["param"]["end"].count("y") == 1 &&
+        j["param"]["end"].count("yaw") == 1)
+      return RequestType::StartPlanning;
+    else if (j["request"] == "forward")
       return RequestType::Forward;
     else if (j["request"] == "backward")
       return RequestType::Backward;
@@ -308,6 +320,13 @@ auto Server::get_request_type(const server::message_ptr& msg)
         std::to_string(*e.what()).c_str());
     return RequestType::Undefined;
   }
+}
+
+//==============================================================================
+
+void Server::get_start_planning_response(
+    const server::message_ptr& msg, std::string& response)
+{
 }
 
 //==============================================================================
