@@ -61,14 +61,15 @@ public:
   {
     PlannerConfig,
     StartPlanning,
-    Forward,
-    Backward,
+    Step,
     ClosePlanner,
     Undefined
   };
 
   struct PlanningInstance
   {
+    std::string id;
+
     rmf_traffic::Profile vehicle_profile;
 
     rmf_traffic::agv::VehicleTraits vehicle_traits;
@@ -80,6 +81,8 @@ public:
     rmf_traffic::schedule::Participant participant;
 
     rmf_traffic::agv::Planner planner;
+
+    Inspector::SharedPtr inspector;
   };
 
 private:
@@ -89,7 +92,6 @@ private:
   // Planning server components
   std::size_t _planning_step = 0;
   std::unique_ptr<PlanningInstance> _planning_instance;
-  Inspector::SharedPtr _inspector;
 
   // Websocket plumbing
   uint16_t _ws_port;
@@ -106,22 +108,21 @@ private:
   void get_start_planning_response(
       const server::message_ptr& msg, std::string& response);
 
-  void get_forward_response(
-      const server::message_ptr& msg, std::string& response);
-
-  void get_backward_response(
+  void get_step_response(
       const server::message_ptr& msg, std::string& response);
 
   void get_close_planner_response(
       const server::message_ptr& msg, std::string& response);
 
-  std::string parse_planning_state(
-      const Inspector::ConstPlanningStatePtr& state) const;
+  void parse_planning_state(
+      const Inspector::ConstPlanningStatePtr& state,
+      json& j_res) const;
 
   Server();
 
   // Templates used for response generation
-  const json _j_res = { {"response", {}}, {"values", {}}, {"error", {}} };
+  const json _j_res = 
+      { {"response", {}}, {"id", {}}, {"values", {}}, {"error", {}} };
   const json _j_traj =
       { {"id", {}}, {"shape", {}}, {"dimensions", {}}, {"segments", {}}};
   const json _j_seg = { {"x", {}}, {"v", {}}, {"t", {}}};
