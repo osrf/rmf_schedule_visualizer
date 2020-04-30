@@ -99,7 +99,7 @@ private:
 
   // Planning server components
   std::mutex _planning_mutex;
-  std::size_t _planning_step;
+  std::size_t _planning_step = 0;
   std::unique_ptr<PlanningComponents> _planning_components;
   Inspector::SharedPtr _inspector;
 

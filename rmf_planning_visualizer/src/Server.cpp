@@ -282,20 +282,18 @@ auto Server::get_request_type(const server::message_ptr& msg)
       return RequestType::Undefined;
 
     if (j["request"] == "start_planning" && 
-        j["param"].count("begin") == 1 &&
-        j["param"]["begin"].count("x") == 1 &&
-        j["param"]["begin"].count("y") == 1 && 
-        j["param"]["begin"].count("yaw") == 1 &&
-        j["param"].count("end") == 1 && 
-        j["param"]["end"].count("x") == 1 &&
-        j["param"]["end"].count("y") == 1 &&
-        j["param"]["end"].count("yaw") == 1)
+        j["param"].count("start") == 1 &&
+        j["param"]["start"].count("x") == 1 &&
+        j["param"]["start"].count("y") == 1 && 
+        j["param"]["start"].count("yaw") == 1 &&
+        j["param"].count("goal") == 1)
       return RequestType::StartPlanning;
     else if (j["request"] == "forward")
       return RequestType::Forward;
     else if (j["request"] == "backward")
       return RequestType::Backward;
-    else if (j["request"] == "step_index" && j["param"].count("index") == 1)
+    else if (j["request"] == "step_index" && 
+        j["param"].count("index") == 1)
       return RequestType::StepIndex;
     else if (j["request"] == "config" &&
         j["param"].count("linear_velocity") == 1 &&
@@ -327,6 +325,44 @@ auto Server::get_request_type(const server::message_ptr& msg)
 void Server::get_start_planning_response(
     const server::message_ptr& msg, std::string& response)
 {
+  std::string msg_payload = msg->get_payload();
+  json j_req = json::parse(msg_payload);
+  json j_start = j_req["param"]["start"];
+  const std::size_t goal_index = j_req["param"]["goal"];
+  
+  const auto time = std::chrono::steady_clock::now();
+  bool started = false;
+  Inspector::ConstPlanningStatePtr planning_state = nullptr;
+
+  {
+    std::lock_guard<std::mutex> guard(_planning_mutex);
+    const std::string l_name = _planning_components->level_name;
+    const std::size_t graph_index = _planning_components->graph_index;
+    auto starts = rmf_traffic::agv::compute_plan_starts(
+        _planning_components->graph_map[l_name][graph_index],
+        {j_start["x"], j_start["y"], j_start["yaw"]},
+        time_now);
+    
+    _inspector = Inspector::make(_planning_components->planner);
+    started = _inspector->begin(
+        starts, 
+        {goal_index}, 
+        _planning_components->planner.get_default_options());
+
+    planning_state = _inspector->get_state();
+    _planning_step = 0;
+  }
+
+  json j_res = _j_res;
+  j_res["response"] = "start_planning";
+  if (!started)
+    j_res["error"] = "Unable to start planning from provided parameters.";
+  else if (!planning_state)
+    j_res["error"] = "Unable to retrieve planning state.";
+  else
+    j_res["values"] = parse_planning_state(planning_state);
+
+  response = j_res.dump();
 }
 
 //==============================================================================
@@ -334,6 +370,20 @@ void Server::get_start_planning_response(
 void Server::get_forward_response(
     const server::message_ptr& msg, std::string& response)
 {
+  std::string msg_payload = msg->get_payload();
+  json j_req = json::parse(msg_payload);
+
+  Inspector::ConstPlanningStatePtr planning_state = nullptr;
+
+  std::lock_guard<std::mutex> guard(_planning_mutex);
+  const std::size_t total_steps_taken = _inspector->step_num();
+  if (_planning_step < total_steps_taken)
+    planning_state = _inspector->get_state(++_planning_step);
+  if (_)
+
+
+  json j_res = _j_res;
+  response = j_res.dump();
 }
 
 //==============================================================================
@@ -341,6 +391,8 @@ void Server::get_forward_response(
 void Server::get_backward_response(
     const server::message_ptr& msg, std::string& response)
 {
+  std::string msg_payload = msg->get_payload();
+  json j_req = json::parse(msg_payload);
 }
 
 //==============================================================================
@@ -370,6 +422,8 @@ void Server::get_step_index_response(
 void Server::get_planner_config_response(
       const server::message_ptr& msg, std::string& response)
 {
+  std::string msg_payload = msg->get_payload();
+  json j_req = json::parse(msg_payload);
 }
 
 //==============================================================================
