@@ -17,8 +17,7 @@ find_package(websocketpp REQUIRED)
 find_package(visualizer_utils REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system date_time regex random)
 find_package(Eigen3 REQUIRED)
-find_package(rclcpp REQUIRED)
-find_package(building_map_msgs REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 #===============================================================================
 
@@ -26,24 +25,22 @@ add_executable(planning_visualizer_server
   src/main.cpp
   src/Inspector.cpp
   src/Server.cpp
+  src/ParseGraph.cpp
 )
 target_link_libraries(planning_visualizer_server
   PRIVATE
     rmf_traffic::rmf_traffic
     visualizer_utils::visualizer_utils
-    ${rclcpp_LIBRARIES}
-    ${building_map_msgs_LIBRARIES}
     Boost::system
     Boost::date_time
     Boost::regex
     Boost::random
+    yaml-cpp
 )
 target_include_directories(planning_visualizer_server
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-    ${rclcpp_INCLUDE_DIRS}
-    ${building_map_msgs_INCLUDE_DIRS}
     ${visualizer_utils_INCLUDE_DIRS}
     ${websocketpp_INCLUDE_DIRS}
 )
