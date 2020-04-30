@@ -19,43 +19,8 @@
 #include <vector>
 #include <iostream>
 
-#include <rclcpp/rclcpp.hpp>
-
-#include <rmf_traffic/geometry/Circle.hpp>
-#include <rmf_traffic/schedule/Database.hpp>
-#include <rmf_traffic/schedule/Participant.hpp>
-
-#include "Inspector.hpp"
 #include "Server.hpp"
 
-
-bool get_arg(
-    const std::vector<std::string>& args,
-    const std::string& key,
-    std::string& value,
-    const std::string& desc,
-    const bool mandatory = true)
-{
-  const auto key_arg = std::find(args.begin(), args.end(), key);
-  if (key_arg == args.end())
-  {
-    if (mandatory)
-    {
-      std::cerr << "You must specify a " << desc <<" using the " << key
-                << " argument!" << std::endl;
-    }
-    return false;
-  }
-  else if (key_arg+1 == args.end())
-  {
-    std::cerr << "The " << key << " argument must be followed by a " << desc
-              << "!" << std::endl;
-    return false;
-  }
-
-  value = *(key_arg+1);
-  return true;
-}
 
 int main(int argc, char* argv[])
 {
@@ -141,30 +106,13 @@ int main(int argc, char* argv[])
   // auto planning_visualizer_server =
   //     rmf_visualizer::planning::Server::make(8008, std::move(planning_inspector));
 
-  const std::vector<std::string> args =
-      rclcpp::init_and_remove_ros_arguments(argc, argv);
+  const uint16_t port = 8080;
+  auto server = rmf_visualizer::planning::Server::make();
 
-  std::string node_name = "planning_visualizer_server_node";
-  get_arg(args, "-n", node_name, "node name", false);
-
-  std::string port_string;
-  get_arg(args, "-p", port_string, "port",false);
-  const uint32_t port = port_string.empty()? 8080 : std::stoul(
-      port_string, nullptr, 0);
-
-  auto server_node = 
-      rmf_visualizer::planning::Server::make(
-          std::move(node_name), 
-          port);
-
-  if (!server_node)
+  if (!server)
     return 1;
+  
+  server->run(port);
 
-  std::cout << "Planning Visualizer server node: [" << node_name
-      << "] started with websocket port [" << port << "]" << std::endl;
-
-  server_node->start();
-
-  std::cout << "Closing down" << std::endl;
   return 0;
 }

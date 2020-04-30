@@ -15,14 +15,12 @@
  *
 */
 
-#include <cstdio>
 #include <chrono>
+#include <iostream>
 
 #include <rmf_traffic/geometry/Circle.hpp>
 #include <rmf_traffic/schedule/Database.hpp>
 #include <rmf_traffic/schedule/Participant.hpp>
-
-#include <building_map_msgs/msg/graph_edge.hpp>
 
 #include "Server.hpp"
 
@@ -31,15 +29,12 @@ namespace planning {
 
 //==============================================================================
 
-auto Server::make(std::string node_name, uint16_t port)
-    -> std::shared_ptr<Server>
+auto Server::make() -> SharedPtr
 {
   std::shared_ptr<Server> server(new Server);
-
   try
   {
-    server->init_ros(std::move(node_name));
-    server->init_websocket(port);
+    server->init();
   }
   catch (std::exception& e)
   {
@@ -51,38 +46,7 @@ auto Server::make(std::string node_name, uint16_t port)
 
 //==============================================================================
 
-void Server::init_ros(std::string node_name)
-{
-  _node = rclcpp::Node::make_shared(std::move(node_name));
-
-  // Warm start to get the building map
-  auto transient_qos_profile = rclcpp::QoS(1);
-  transient_qos_profile.transient_local();
-  _map_sub = _node->create_subscription<BuildingMap>(
-      "/map",
-      transient_qos_profile,
-      [&](BuildingMap::UniquePtr msg)
-      {
-        update_graph(std::move(msg));
-      });
-  
-  _planning_components = nullptr;
-  const auto stop_time =
-      std::chrono::steady_clock::now() + std::chrono::seconds(5);
-  while (rclcpp::ok() && std::chrono::steady_clock::now() < stop_time)
-  {
-    rclcpp::spin_some(_node);
-    if (_planning_components)
-      break;
-  }
-  if (!_planning_components)
-    throw std::runtime_error(
-        "Unable to initialize: [No BuildingMap message received.]");
-}
-
-//==============================================================================
-
-void Server::init_websocket(uint16_t port)
+void Server::init()
 {
   using websocketpp::lib::placeholders::_1;
   using websocketpp::lib::placeholders::_2;
@@ -92,30 +56,30 @@ void Server::init_websocket(uint16_t port)
   _ws_server.set_open_handler([&](connection_hdl hdl)
   {
     _ws_connections.insert(hdl);
-    printf("Connected with a client...\n");
+    std::cout << "Connected with a client..." << std::endl;
   });
   _ws_server.set_close_handler([&](connection_hdl hdl)
   {
     _ws_connections.erase(hdl);
-    printf("Disconnected with a client...\n");
+    std::cout << "Disconnected with a client..." << std::endl;
   });
   _ws_server.set_message_handler(bind(&Server::on_message, this, _1, _2));
 
-  _ws_server.set_reuse_addr(true);
-  _ws_server.listen(port);
+  _is_initialized = true;
 }
 
 //==============================================================================
 
-void Server::start()
+void Server::run(uint16_t port)
 {
+  assert(_is_initialized);
+  _ws_server.set_reuse_addr(true);
+  _ws_server.listen(port);
   _ws_server.start_accept();
-  _ws_server_thread = std::thread([&]()
-  {
-    this->_ws_server.run();
-  });
 
-  rclcpp::spin(_node);
+  std::cout << "Planning Visualizer server starting with websocket port [" 
+      << port << "]" << std::endl;
+  _ws_server.run();
 }
 
 //==============================================================================
@@ -127,108 +91,15 @@ Server::Server()
 
 Server::~Server()
 {
-  rclcpp::shutdown();
+  if (!_is_initialized)
+    return;
 
-  // Thread safe access to _ws_connections
-  const auto connection_copies = _ws_connections;
-  for (auto& c : connection_copies)
+  std::cout << "Planning Visualizer server shutting down" << std::endl;
+  for (auto& c : _ws_connections)
   {
     _ws_server.close(c, websocketpp::close::status::normal, "shutdown");
   }
-
-  if (_ws_server_thread.joinable())
-  {
-    _ws_server.stop();
-    _ws_server_thread.join();
-  }
-}
-
-//==============================================================================
-
-void Server::update_graph(BuildingMap::UniquePtr msg)
-{
-  // Check if planning components have already been set up
-  // TODO: worry about updating the graph and planner later, for now the server
-  // needs to be restarted everytime the map server changes the map.
-  if (_planning_components)
-    return;
-
-  RCLCPP_INFO(_node->get_logger(), "Setting up graph.");
-  std::unordered_map<std::string, std::vector<rmf_traffic::agv::Graph>>
-      graph_map;
-  std::string first_level_name = "";
-
-  for (const auto& l : msg->levels)
-  {
-    std::vector<rmf_traffic::agv::Graph> graph_set;
-    for (const auto& g : l.nav_graphs)
-    {
-      rmf_traffic::agv::Graph new_graph;
-      for (const auto& v : g.vertices)
-      {
-        new_graph.add_waypoint(l.name, {v.x, v.y});
-      }
-      for (const auto& e : g.edges)
-      {
-        using GraphEdge = building_map_msgs::msg::GraphEdge;
-        if (e.edge_type == GraphEdge::EDGE_TYPE_BIDIRECTIONAL)
-        {
-          new_graph.add_lane(e.v1_idx, e.v2_idx);
-          new_graph.add_lane(e.v2_idx, e.v1_idx);
-        }
-        else
-        {
-          new_graph.add_lane(e.v1_idx, e.v2_idx);
-        }
-      }
-
-      graph_set.push_back(new_graph);
-
-      // this is to make sure we select a default level and graph index that is
-      // populated
-      if (first_level_name == "")
-        first_level_name = l.name;
-    }
-    graph_map[l.name] = graph_set;
-  }
-
-  // Inital setup with default values
-  const auto vehicle_profile = rmf_traffic::Profile {
-      rmf_traffic::geometry::make_final_convex<
-          rmf_traffic::geometry::Circle>(0.3)};
-  const auto vehicle_traits = rmf_traffic::agv::VehicleTraits {
-      {0.4, 3.0}, 
-      {0.4, 4.0}, 
-      vehicle_profile};
-  const rmf_traffic::agv::Planner::Configuration planner_config {
-      graph_map[first_level_name][0], 
-      vehicle_traits};
-  rmf_traffic::schedule::Database database;
-  auto participant = rmf_traffic::schedule::make_participant(
-      rmf_traffic::schedule::ParticipantDescription {
-          first_level_name,
-          "planning_visualizer",
-          rmf_traffic::schedule::ParticipantDescription::Rx::Responsive,
-          vehicle_profile},
-      database);
-  rmf_traffic::agv::Planner planner(
-      planner_config,
-      rmf_traffic::agv::Planner::Options(
-          rmf_utils::make_clone<rmf_traffic::agv::ScheduleRouteValidator>(
-              database, participant.id(), vehicle_profile)));
-
-  std::lock_guard<std::mutex> guard(_planning_mutex);
-  _planning_components.reset(new PlanningComponents {
-    std::move(first_level_name),
-    0,
-    std::move(vehicle_profile),
-    std::move(vehicle_traits),
-    std::move(graph_map),
-    std::move(database),
-    std::move(participant),
-    std::move(planner)});
-
-  _inspector = Inspector::make(_planning_components->planner);
+  _ws_server.stop();
 }
 
 //==============================================================================
@@ -237,7 +108,7 @@ void Server::on_message(connection_hdl hdl, server::message_ptr msg)
 {
   if (msg->get_payload().empty())
   {
-    printf("Empty request received...\n");
+    std::cerr << "Empty request received..." << std::endl;
     return;
   }
 
@@ -245,23 +116,23 @@ void Server::on_message(connection_hdl hdl, server::message_ptr msg)
   std::string response = "";
   switch(request_type)
   {
+    case RequestType::PlannerConfig:
+      get_planner_config_response(msg, response); break;
     case RequestType::StartPlanning:
       get_start_planning_response(msg, response); break;
     case RequestType::Forward: 
       get_forward_response(msg, response); break;
     case RequestType::Backward: 
       get_backward_response(msg, response); break;
-    case RequestType::StepIndex:
-      get_step_index_response(msg, response); break;
-    case RequestType::PlannerConfig:
-      get_planner_config_response(msg, response); break;
+    case RequestType::ClosePlanner:
+      get_close_planner_response(msg, response); break;
     default: {
-      printf("Undefined request type received...\n");
+      std::cerr << "Undefined request type received..." << std::endl;
       break;
     }
   }
 
-  printf("Response: %s", response.c_str());
+  std::cout << "Response: " << response << std::endl;
   server::message_ptr response_msg = std::move(msg);
   response_msg->set_payload(response);
   _ws_server.send(hdl, response_msg);
@@ -281,43 +152,111 @@ auto Server::get_request_type(const server::message_ptr& msg)
     if (j.size() != 2 || j.count("request") != 1 || j.count("param") != 1)
       return RequestType::Undefined;
 
-    if (j["request"] == "start_planning" && 
+    if (j["request"] == "planner_config" &&
+        j["param"].count("id") == 1 &&
+        j["param"].count("profile_radius") == 1 &&
+        j["param"].count("linear_velocity") == 1 &&
+        j["param"].count("linear_acceleration") == 1 &&
+        j["param"].count("angular_velocity") == 1 &&
+        j["param"].count("angular_acceleration") == 1 &&
+        j["param"].count("graph_file_path") == 1)
+      return RequestType::PlannerConfig;
+    else if (j["request"] == "start_planning" && 
+        j["param"].count("id") == 1 &&
         j["param"].count("start") == 1 &&
         j["param"]["start"].count("x") == 1 &&
         j["param"]["start"].count("y") == 1 && 
         j["param"]["start"].count("yaw") == 1 &&
         j["param"].count("goal") == 1)
       return RequestType::StartPlanning;
-    else if (j["request"] == "forward")
+    else if (j["request"] == "forward" && j["param"].count("id") == 1)
       return RequestType::Forward;
-    else if (j["request"] == "backward")
+    else if (j["request"] == "backward" && j["param"].count("id") == 1)
       return RequestType::Backward;
-    else if (j["request"] == "step_index" && 
-        j["param"].count("index") == 1)
-      return RequestType::StepIndex;
-    else if (j["request"] == "config" &&
-        j["param"].count("linear_velocity") == 1 &&
-        j["param"].count("linear_acceleration") == 1 &&
-        j["param"].count("angular_velocity") == 1 &&
-        j["param"].count("angular_acceleration") == 1 &&
-        j["param"].count("profile_shape") == 1 &&
-        j["param"].count("profile_radius") == 1 &&
-        j["param"].count("linear_velocity") == 1 &&
-        j["param"].count("level_name") == 1 &&
-        j["param"].count("graph_index") == 1 &&
-        j["param"].count("linear_velocity") == 1)
-      return RequestType::PlannerConfig;
+    else if (j["request"] == "close_planner" && j["param"].count("id") == 1)
+      return RequestType::ClosePlanner;
     else
       return RequestType::Undefined;
   }
   catch(const std::exception& e)
   {
-    RCLCPP_ERROR(
-        _node->get_logger(),
-        "Error: %s",
-        std::to_string(*e.what()).c_str());
+    std::cerr << "Error: " << std::to_string(*e.what()) << std::endl;
     return RequestType::Undefined;
   }
+}
+
+//==============================================================================
+
+void Server::get_planner_config_response(
+      const server::message_ptr& msg, std::string& response)
+{
+  std::string msg_payload = msg->get_payload();
+  json j_req = json::parse(msg_payload);
+  auto j_param = j_req["param"];
+
+  json j_res = _j_res;
+  j_res["response"] = "planner_config";
+
+  // TODO: handle shapes, default to circle for now.
+  const double profile_radius = j_param["profile_radius"];
+  if (profile_radius < 0.0)
+  {
+    j_res["error"] = "Profile radius must be positive.";
+    response = j_res.dump();
+    return;
+  }
+  const auto profile = rmf_traffic::Profile {
+      rmf_traffic::geometry::make_final_convex<
+          rmf_traffic::geometry::Circle>(profile_radius)};
+
+  const double linear_v = j_param["linear_velocity"];
+  const double linear_a = j_param["linear_acceleration"];
+  const double angular_v = j_param["angular_velocity"];
+  const double angular_a = j_param["angular_acceleration"];
+  if (linear_v < 0.0 || linear_a < 0.0 || angular_v < 0.0 || angular_a < 0.0)
+  {
+    j_res["error"] = "Velocities and accelerations must be positive.";
+    response = j_res.dump();
+    return;
+  }
+  const auto traits = rmf_traffic::agv::VehicleTraits{
+      {linear_v, linear_a}, {angular_v, angular_a}, profile};
+
+  const auto graph_info = parse_graph(j_param["graph_file_path"], traits);
+  if (!graph_info.has_value())
+  {
+    j_res["error"] = "Failed to parse graph file.";
+    response = j_res.dump();
+    return;
+  }
+  
+  const rmf_traffic::agv::Planner::Configuration planner_config {
+      graph_info.value().graph, traits};
+
+  rmf_traffic::schedule::Database database;
+
+  std::string planner_id = j_param["id"];
+  auto participant = rmf_traffic::schedule::make_participant(
+      rmf_traffic::schedule::ParticipantDescription {
+          planner_id,
+          "rmf_planning_visualizer",
+          rmf_traffic::schedule::ParticipantDescription::Rx::Responsive,
+          profile},
+      database);
+
+  rmf_traffic::agv::Planner planner(
+      planner_config,
+      rmf_traffic::agv::Planner::Options(
+          rmf_utils::make_clone<rmf_traffic::agv::ScheduleRouteValidator>(
+              database, participant.id(), profile)));
+
+  _planning_instance.reset(new PlanningInstance {
+      std::move(profile),
+      std::move(traits),
+      std::move(graph_info.value()),
+      std::move(database),
+      std::move(participant),
+      std::move(planner)});
 }
 
 //==============================================================================
@@ -325,44 +264,44 @@ auto Server::get_request_type(const server::message_ptr& msg)
 void Server::get_start_planning_response(
     const server::message_ptr& msg, std::string& response)
 {
-  std::string msg_payload = msg->get_payload();
-  json j_req = json::parse(msg_payload);
-  json j_start = j_req["param"]["start"];
-  const std::size_t goal_index = j_req["param"]["goal"];
+  // std::string msg_payload = msg->get_payload();
+  // json j_req = json::parse(msg_payload);
+  // json j_start = j_req["param"]["start"];
+  // const std::size_t goal_index = j_req["param"]["goal"];
   
-  const auto time = std::chrono::steady_clock::now();
-  bool started = false;
-  Inspector::ConstPlanningStatePtr planning_state = nullptr;
+  // const auto time = std::chrono::steady_clock::now();
+  // bool started = false;
+  // Inspector::ConstPlanningStatePtr planning_state = nullptr;
 
-  {
-    std::lock_guard<std::mutex> guard(_planning_mutex);
-    const std::string l_name = _planning_components->level_name;
-    const std::size_t graph_index = _planning_components->graph_index;
-    auto starts = rmf_traffic::agv::compute_plan_starts(
-        _planning_components->graph_map[l_name][graph_index],
-        {j_start["x"], j_start["y"], j_start["yaw"]},
-        time_now);
+  // {
+  //   std::lock_guard<std::mutex> guard(_planning_mutex);
+  //   const std::string l_name = _planning_components->level_name;
+  //   const std::size_t graph_index = _planning_components->graph_index;
+  //   auto starts = rmf_traffic::agv::compute_plan_starts(
+  //       _planning_components->graph_map[l_name][graph_index],
+  //       {j_start["x"], j_start["y"], j_start["yaw"]},
+  //       time_now);
     
-    _inspector = Inspector::make(_planning_components->planner);
-    started = _inspector->begin(
-        starts, 
-        {goal_index}, 
-        _planning_components->planner.get_default_options());
+  //   _inspector = Inspector::make(_planning_components->planner);
+  //   started = _inspector->begin(
+  //       starts, 
+  //       {goal_index}, 
+  //       _planning_components->planner.get_default_options());
 
-    planning_state = _inspector->get_state();
-    _planning_step = 0;
-  }
+  //   planning_state = _inspector->get_state();
+  //   _planning_step = 0;
+  // }
 
-  json j_res = _j_res;
-  j_res["response"] = "start_planning";
-  if (!started)
-    j_res["error"] = "Unable to start planning from provided parameters.";
-  else if (!planning_state)
-    j_res["error"] = "Unable to retrieve planning state.";
-  else
-    j_res["values"] = parse_planning_state(planning_state);
+  // json j_res = _j_res;
+  // j_res["response"] = "start_planning";
+  // if (!started)
+  //   j_res["error"] = "Unable to start planning from provided parameters.";
+  // else if (!planning_state)
+  //   j_res["error"] = "Unable to retrieve planning state.";
+  // else
+  //   j_res["values"] = parse_planning_state(planning_state);
 
-  response = j_res.dump();
+  // response = j_res.dump();
 }
 
 //==============================================================================
@@ -370,20 +309,20 @@ void Server::get_start_planning_response(
 void Server::get_forward_response(
     const server::message_ptr& msg, std::string& response)
 {
-  std::string msg_payload = msg->get_payload();
-  json j_req = json::parse(msg_payload);
+  // std::string msg_payload = msg->get_payload();
+  // json j_req = json::parse(msg_payload);
 
-  Inspector::ConstPlanningStatePtr planning_state = nullptr;
+  // Inspector::ConstPlanningStatePtr planning_state = nullptr;
 
-  std::lock_guard<std::mutex> guard(_planning_mutex);
-  const std::size_t total_steps_taken = _inspector->step_num();
-  if (_planning_step < total_steps_taken)
-    planning_state = _inspector->get_state(++_planning_step);
-  if (_)
+  // std::lock_guard<std::mutex> guard(_planning_mutex);
+  // const std::size_t total_steps_taken = _inspector->step_num();
+  // if (_planning_step < total_steps_taken)
+  //   planning_state = _inspector->get_state(++_planning_step);
+  // if (_)
 
 
-  json j_res = _j_res;
-  response = j_res.dump();
+  // json j_res = _j_res;
+  // response = j_res.dump();
 }
 
 //==============================================================================
@@ -397,30 +336,8 @@ void Server::get_backward_response(
 
 //==============================================================================
 
-void Server::get_step_index_response(
+void Server::get_close_planner_response(
     const server::message_ptr& msg, std::string& response)
-{
-  std::string msg_payload = msg->get_payload();
-  json j_req = json::parse(msg_payload);
-
-  auto planning_state = _inspector->get_state(
-      static_cast<std::size_t>(j_req["param"]["index"]));
-  
-  json j_res = _j_res;
-  j_res["response"] = "step_index";
-  if (!planning_state)
-    j_res["error"] = "Unable to get planning state using index, please "
-        "ensure index is within range.";
-  else
-    j_res["values"] = parse_planning_state(planning_state);
-  
-  response = j_res.dump();
-}
-
-//==============================================================================
-
-void Server::get_planner_config_response(
-      const server::message_ptr& msg, std::string& response)
 {
   std::string msg_payload = msg->get_payload();
   json j_req = json::parse(msg_payload);

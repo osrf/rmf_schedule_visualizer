@@ -22,9 +22,6 @@
 #include <mutex>
 #include <memory>
 
-#include <rclcpp/rclcpp.hpp>
-#include <building_map_msgs/msg/building_map.hpp>
-
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 
@@ -36,6 +33,7 @@
 #include <visualizer_utils/json.hpp>
 
 #include "Inspector.hpp"
+#include "ParseGraph.hpp"
 
 namespace rmf_visualizer {
 namespace planning {
@@ -45,46 +43,37 @@ class Server
 
 public:
 
+  using SharedPtr = std::shared_ptr<Server>;
   using server = websocketpp::server<websocketpp::config::asio>;
   using connection_hdl = websocketpp::connection_hdl;
   using json = nlohmann::json;
 
-  using BuildingMap = building_map_msgs::msg::BuildingMap;
-
-  static std::shared_ptr<Server> make(std::string node_name, uint16_t port);
+  static SharedPtr make();
 
   ~Server();
 
-  void init_ros(std::string node_name);
+  void init();
 
-  void init_websocket(uint16_t port);
-
-  void start();
+  // This is a blocking call.
+  void run(uint16_t port);
 
   enum class RequestType : uint8_t
   {
+    PlannerConfig,
     StartPlanning,
     Forward,
     Backward,
-    StepIndex,
-    PlannerConfig,
+    ClosePlanner,
     Undefined
   };
 
-  struct PlanningComponents
+  struct PlanningInstance
   {
-    std::string level_name;
-
-    // TODO: remember to swap out to use std::string when we start using strings
-    // instead of indices.
-    size_t graph_index;
-
     rmf_traffic::Profile vehicle_profile;
 
     rmf_traffic::agv::VehicleTraits vehicle_traits;
 
-    std::unordered_map<std::string, std::vector<rmf_traffic::agv::Graph>> 
-        graph_map;
+    GraphInfo graph_info;
 
     rmf_traffic::schedule::Database database;
 
@@ -98,22 +87,14 @@ private:
   bool _is_initialized = false;
 
   // Planning server components
-  std::mutex _planning_mutex;
   std::size_t _planning_step = 0;
-  std::unique_ptr<PlanningComponents> _planning_components;
+  std::unique_ptr<PlanningInstance> _planning_instance;
   Inspector::SharedPtr _inspector;
 
-  // ROS2 plumbing
-  rclcpp::Node::SharedPtr _node;
-  rclcpp::Subscription<BuildingMap>::SharedPtr _map_sub;
-
-  void update_graph(BuildingMap::UniquePtr msg);
-
   // Websocket plumbing
+  uint16_t _ws_port;
   server _ws_server;
   std::set<connection_hdl, std::owner_less<connection_hdl>> _ws_connections;
-  uint16_t _ws_port;
-  std::thread _ws_server_thread;
 
   void on_message(connection_hdl hdl, server::message_ptr msg);
 
@@ -131,7 +112,7 @@ private:
   void get_backward_response(
       const server::message_ptr& msg, std::string& response);
 
-  void get_step_index_response(
+  void get_close_planner_response(
       const server::message_ptr& msg, std::string& response);
 
   std::string parse_planning_state(
