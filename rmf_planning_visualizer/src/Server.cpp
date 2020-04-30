@@ -77,8 +77,8 @@ void Server::run(uint16_t port)
   _ws_server.listen(port);
   _ws_server.start_accept();
 
-  std::cout << "Planning Visualizer server starting with websocket port [" 
-      << port << "]" << std::endl;
+  std::cout << "Planning Visualizer server starting on port [" << port 
+      << "]" << std::endl;
   _ws_server.run();
 }
 
@@ -120,10 +120,8 @@ void Server::on_message(connection_hdl hdl, server::message_ptr msg)
       get_planner_config_response(msg, response); break;
     case RequestType::StartPlanning:
       get_start_planning_response(msg, response); break;
-    case RequestType::Forward: 
-      get_forward_response(msg, response); break;
-    case RequestType::Backward: 
-      get_backward_response(msg, response); break;
+    case RequestType::Step: 
+      get_step_response(msg, response); break;
     case RequestType::ClosePlanner:
       get_close_planner_response(msg, response); break;
     default: {
@@ -152,7 +150,7 @@ auto Server::get_request_type(const server::message_ptr& msg)
     if (j.size() != 2 || j.count("request") != 1 || j.count("param") != 1)
       return RequestType::Undefined;
 
-    if (j["request"] == "planner_config" &&
+    if (j["request"] == "planner_config" && 
         j["param"].count("id") == 1 &&
         j["param"].count("profile_radius") == 1 &&
         j["param"].count("linear_velocity") == 1 &&
@@ -169,11 +167,11 @@ auto Server::get_request_type(const server::message_ptr& msg)
         j["param"]["start"].count("yaw") == 1 &&
         j["param"].count("goal") == 1)
       return RequestType::StartPlanning;
-    else if (j["request"] == "forward" && j["param"].count("id") == 1)
-      return RequestType::Forward;
-    else if (j["request"] == "backward" && j["param"].count("id") == 1)
-      return RequestType::Backward;
-    else if (j["request"] == "close_planner" && j["param"].count("id") == 1)
+    else if (j["request"] == "step" && 
+        j["param"].count("id") == 1)
+      return RequestType::Step;
+    else if (j["request"] == "close_planner" && 
+        j["param"].count("id") == 1)
       return RequestType::ClosePlanner;
     else
       return RequestType::Undefined;
@@ -192,10 +190,21 @@ void Server::get_planner_config_response(
 {
   std::string msg_payload = msg->get_payload();
   json j_req = json::parse(msg_payload);
-  auto j_param = j_req["param"];
+  json j_param = j_req["param"];
+  std::string planning_instance_id = j_param["id"];
 
   json j_res = _j_res;
   j_res["response"] = "planner_config";
+  j_res["id"] = planning_instance_id;
+
+  if (_planning_instance)
+  {
+    j_res["error"] = 
+        "Already running a planning instance of id: [" +
+        _planning_instance->id + "].";
+    response = j_res.dump();
+    return;
+  }
 
   // TODO: handle shapes, default to circle for now.
   const double profile_radius = j_param["profile_radius"];
@@ -235,10 +244,9 @@ void Server::get_planner_config_response(
 
   rmf_traffic::schedule::Database database;
 
-  std::string planner_id = j_param["id"];
   auto participant = rmf_traffic::schedule::make_participant(
       rmf_traffic::schedule::ParticipantDescription {
-          planner_id,
+          planning_instance_id,
           "rmf_planning_visualizer",
           rmf_traffic::schedule::ParticipantDescription::Rx::Responsive,
           profile},
@@ -250,13 +258,21 @@ void Server::get_planner_config_response(
           rmf_utils::make_clone<rmf_traffic::agv::ScheduleRouteValidator>(
               database, participant.id(), profile)));
 
+  auto inspector_ptr = Inspector::make(planner);
+
   _planning_instance.reset(new PlanningInstance {
+      std::move(planning_instance_id),
       std::move(profile),
       std::move(traits),
       std::move(graph_info.value()),
       std::move(database),
       std::move(participant),
-      std::move(planner)});
+      std::move(planner),
+      inspector_ptr});
+
+  // TODO: Provide a more specific success response, other than no-error
+  j_res["values"] = "";
+  response = j_res.dump();
 }
 
 //==============================================================================
@@ -264,74 +280,95 @@ void Server::get_planner_config_response(
 void Server::get_start_planning_response(
     const server::message_ptr& msg, std::string& response)
 {
-  // std::string msg_payload = msg->get_payload();
-  // json j_req = json::parse(msg_payload);
-  // json j_start = j_req["param"]["start"];
-  // const std::size_t goal_index = j_req["param"]["goal"];
-  
-  // const auto time = std::chrono::steady_clock::now();
-  // bool started = false;
-  // Inspector::ConstPlanningStatePtr planning_state = nullptr;
+  json j_res = _j_res;
+  j_res["response"] = "start_planning";
+  if (!_planning_instance)
+  {
+    j_res["error"] = "Planning instance has not yet been started.";
+    response = j_res.dump();
+    return;
+  }
 
-  // {
-  //   std::lock_guard<std::mutex> guard(_planning_mutex);
-  //   const std::string l_name = _planning_components->level_name;
-  //   const std::size_t graph_index = _planning_components->graph_index;
-  //   auto starts = rmf_traffic::agv::compute_plan_starts(
-  //       _planning_components->graph_map[l_name][graph_index],
-  //       {j_start["x"], j_start["y"], j_start["yaw"]},
-  //       time_now);
-    
-  //   _inspector = Inspector::make(_planning_components->planner);
-  //   started = _inspector->begin(
-  //       starts, 
-  //       {goal_index}, 
-  //       _planning_components->planner.get_default_options());
-
-  //   planning_state = _inspector->get_state();
-  //   _planning_step = 0;
-  // }
-
-  // json j_res = _j_res;
-  // j_res["response"] = "start_planning";
-  // if (!started)
-  //   j_res["error"] = "Unable to start planning from provided parameters.";
-  // else if (!planning_state)
-  //   j_res["error"] = "Unable to retrieve planning state.";
-  // else
-  //   j_res["values"] = parse_planning_state(planning_state);
-
-  // response = j_res.dump();
-}
-
-//==============================================================================
-
-void Server::get_forward_response(
-    const server::message_ptr& msg, std::string& response)
-{
-  // std::string msg_payload = msg->get_payload();
-  // json j_req = json::parse(msg_payload);
-
-  // Inspector::ConstPlanningStatePtr planning_state = nullptr;
-
-  // std::lock_guard<std::mutex> guard(_planning_mutex);
-  // const std::size_t total_steps_taken = _inspector->step_num();
-  // if (_planning_step < total_steps_taken)
-  //   planning_state = _inspector->get_state(++_planning_step);
-  // if (_)
-
-
-  // json j_res = _j_res;
-  // response = j_res.dump();
-}
-
-//==============================================================================
-
-void Server::get_backward_response(
-    const server::message_ptr& msg, std::string& response)
-{
   std::string msg_payload = msg->get_payload();
   json j_req = json::parse(msg_payload);
+  json j_param = j_req["param"];
+  std::string planning_instance_id = j_param["id"];
+
+  // TODO: Allow multiple planning instances, identified by their ID
+  if (planning_instance_id != _planning_instance->id)
+  {
+    j_res["error"] = "Planning instance does not match the requested ID.";
+    response = j_res.dump();
+    return;
+  }
+
+  // TODO: Allow overwriting existing planning jobs.
+  if (_planning_instance->inspector->step_num() != 0)
+  {
+    j_res["error"] = "Planning instance has already started a planning job. "
+        "Create a new planning instance to start a new job.";
+    response = j_res.dump();
+    return;
+  }
+
+  const double start_x = j_param["start"]["x"];
+  const double start_y = j_param["start"]["y"];
+  const double start_yaw = j_param["start"]["yaw"];
+  const std::size_t goal_index = j_param["goal"];
+
+  const auto time_now = std::chrono::steady_clock::now();
+  auto starts = rmf_traffic::agv::compute_plan_starts(
+      _planning_instance->graph_info.graph,
+      {start_x, start_y, start_yaw},
+      time_now);
+  bool started = _planning_instance->inspector->begin(
+      starts,
+      {goal_index},
+      _planning_instance->planner.get_default_options());
+  if (!started)
+  {
+    j_res["error"] = "Plan could not be started, please check that the provided"
+        " start and goal are valid.";
+    response = j_res.dump();
+    return;
+  }
+
+  auto planning_state = _planning_instance->inspector->get_state();
+  parse_planning_state(planning_state, j_res);
+  response = j_res.dump();
+}
+
+//==============================================================================
+
+void Server::get_step_response(
+    const server::message_ptr& msg, std::string& response)
+{
+  json j_res = _j_res;
+  j_res["response"] = "forward";
+  if (!_planning_instance)
+  {
+    j_res["error"] = "Planning instance has not yet been started.";
+    response = j_res.dump();
+    return;
+  }
+
+  std::string msg_payload = msg->get_payload();
+  json j_req = json::parse(msg_payload);
+  json j_param = j_req["param"];
+  std::string planning_instance_id = j_param["id"];
+
+  // TODO: Allow multiple planning instances, identified by their ID
+  if (planning_instance_id != _planning_instance->id)
+  {
+    j_res["error"] = "Planning instance does not match the requested ID.";
+    response = j_res.dump();
+    return;
+  }
+
+  _planning_instance->inspector->step();
+  auto planning_state = _planning_instance->inspector->get_state();
+  parse_planning_state(planning_state, j_res);
+  response = j_res.dump();
 }
 
 //==============================================================================
@@ -339,17 +376,74 @@ void Server::get_backward_response(
 void Server::get_close_planner_response(
     const server::message_ptr& msg, std::string& response)
 {
+  json j_res = _j_res;
+  j_res["response"] = "close_planner";
+  if (!_planning_instance)
+  {
+    j_res["error"] = "Planning instance has not yet been started.";
+    response = j_res.dump();
+    return;
+  }
+
   std::string msg_payload = msg->get_payload();
   json j_req = json::parse(msg_payload);
+  json j_param = j_req["param"];
+  std::string planning_instance_id = j_param["id"];
+
+  // TODO: Allow multiple planning instances, identified by their ID
+  if (planning_instance_id != _planning_instance->id)
+  {
+    j_res["error"] = "Planning instance does not match the requested ID.";
+    response = j_res.dump();
+    return;
+  }
+
+  _planning_instance.release();
+  assert(_planning_instance.get() == nullptr);
+
+
+  // TODO: Provide a more specific success response, other than no-error
+  j_res["values"] = "";
+  response = j_res.dump();
 }
 
 //==============================================================================
 
-std::string Server::parse_planning_state(
-    const Inspector::ConstPlanningStatePtr& state) const
+void Server::parse_planning_state(
+    const Inspector::ConstPlanningStatePtr& state, json& j_res) const
 {
-  std::string result;
-  return result;
+  if (!_planning_instance)
+    return;
+
+  size_t traj_id = 0;
+  for (const auto& n : state->expanded_nodes)
+  {
+    auto j_traj = _j_traj;
+    j_traj["id"] = traj_id++;
+    j_traj["shape"] = "circle";
+    j_traj["dimensions"] = _planning_instance->vehicle_profile.footprint()
+        ->get_characteristic_length();
+
+    auto current_node = n;
+    while(current_node)
+    {
+      const auto& traj = current_node->route_from_parent.trajectory();
+      for (auto it = traj.begin(); it != traj.end(); it++)
+      {
+        auto j_seg = _j_seg;
+        auto pos = it->position();
+        auto vel = it->velocity();
+        j_seg["x"] = {pos[0], pos[1], pos[2]};
+        j_seg["v"] = {vel[0], vel[1], vel[2]};
+        j_seg["t"] = std::chrono::duration_cast<std::chrono::milliseconds>(
+            it->time().time_since_epoch()).count();
+        j_traj["segments"].push_back(j_seg);
+      }
+      current_node = current_node->parent;
+    }
+
+    j_res["values"].push_back(j_traj);
+  }
 }
 
 //==============================================================================
