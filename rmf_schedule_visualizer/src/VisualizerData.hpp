@@ -29,14 +29,12 @@
 #include <rclcpp/node.hpp>
 
 #include <std_msgs/msg/string.hpp>
-#include <rmf_traffic_msgs/msg/schedule_conflict.hpp>
 
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 
 #include <set>
 #include <mutex>
-#include <unordered_set>
 
 namespace rmf_schedule_visualizer {
 
@@ -44,8 +42,6 @@ class VisualizerDataNode : public rclcpp::Node
 {
 public:
   using Element = rmf_traffic::schedule::Viewer::View::Element;
-  using ScheduleConflict = rmf_traffic_msgs::msg::ScheduleConflict;
-
   /// Builder function which returns a pointer to VisualizerNode when
   /// the Mirror Manager is readied and websocket is started.
   /// A nullptr is returned if initialization fails. 
@@ -59,8 +55,6 @@ public:
   /// Function to query Mirror Manager for elements containing
   /// trajectory and ID pairs.
   std::vector<Element> get_elements(RequestParam request_param);
-
-  const std::unordered_set<uint64_t>& get_conflicts() const;
 
   rmf_traffic::Time now();
 
@@ -83,17 +77,15 @@ public:
 
   void debug_cb(std_msgs::msg::String::UniquePtr msg);
 
-  void start(Data data);
-
   using DebugSub = rclcpp::Subscription<std_msgs::msg::String>;
   DebugSub::SharedPtr debug_sub;
-  rclcpp::Subscription<ScheduleConflict>::SharedPtr _conflcit_sub;
+
+  void start(Data data);
 
   std::vector<rmf_traffic::Trajectory> _trajectories;
   std::string _node_name;
   std::unique_ptr<Data> data;
   std::mutex _mutex;
-  std::unordered_set<uint64_t> _conflict_id;
 };
 
 } // namespace rmf_schedule_visualizer
