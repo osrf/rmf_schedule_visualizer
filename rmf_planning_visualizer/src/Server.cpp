@@ -344,7 +344,7 @@ void Server::get_step_response(
     const server::message_ptr& msg, std::string& response)
 {
   json j_res = _j_res;
-  j_res["response"] = "forward";
+  j_res["response"] = "step";
   if (!_planning_instance)
   {
     j_res["error"] = "Planning instance has not yet been started.";

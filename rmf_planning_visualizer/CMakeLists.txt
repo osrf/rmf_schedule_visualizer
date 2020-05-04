@@ -58,15 +58,23 @@ target_link_libraries(test_inspector
 
 #===============================================================================
 
-install(
-  DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME}
+add_executable(test_server_response
+  src/test_server_response.cpp
+  src/Inspector.cpp
 )
+target_link_libraries(test_server_response
+  PRIVATE
+    rmf_traffic::rmf_traffic
+    visualizer_utils::visualizer_utils
+)
+
+#===============================================================================
 
 install(
   TARGETS 
     planning_visualizer_server
     test_inspector
+    test_server_response
   EXPORT
   RUNTIME DESTINATION lib/${PROJECT_NAME}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

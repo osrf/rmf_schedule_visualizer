@@ -28,12 +28,6 @@
 #include <geometry_msgs/msg/point.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <visualization_msgs/msg/marker.hpp>
-<<<<<<< HEAD
-#include <rmf_traffic_msgs/msg/schedule_conflict_notice.hpp>
-#include <rmf_traffic_msgs/msg/schedule_conflict_conclusion.hpp>
-=======
-
->>>>>>> master
 #include "rmf_schedule_visualizer_msgs/msg/rviz_param.hpp"
 
 #include <building_map_msgs/msg/building_map.hpp>
@@ -56,11 +50,6 @@ public:
   using MarkerArray = visualization_msgs::msg::MarkerArray;
   using Point = geometry_msgs::msg::Point;
   using RequestParam = rmf_schedule_visualizer::RequestParam;
-<<<<<<< HEAD
-  using ConflictNotice = rmf_traffic_msgs::msg::ScheduleConflictNotice;
-  using ConflictConclusion = rmf_traffic_msgs::msg::ScheduleConflictConclusion;
-=======
->>>>>>> master
   using Element = rmf_traffic::schedule::Viewer::View::Element;
   using RvizParamMsg = rmf_schedule_visualizer_msgs::msg::RvizParam;
   using BuildingMap = building_map_msgs::msg::BuildingMap;
@@ -104,33 +93,6 @@ public:
         "map_markers",
         transient_qos_profile);
     
-<<<<<<< HEAD
-    // Create subscriber for schedule_conflict in separate thread
-    _cb_group_conflict_sub = this->create_callback_group(
-        rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
-    auto sub_conflict_opt = rclcpp::SubscriptionOptions();
-    sub_conflict_opt.callback_group = _cb_group_conflict_sub;
-    _conflict_notice_sub = this->create_subscription<ConflictNotice>(
-        rmf_traffic_ros2::ScheduleConflictNoticeTopicName,
-        rclcpp::QoS(10),
-        [&](ConflictNotice::UniquePtr msg)
-        {
-          std::lock_guard<std::mutex> guard(_visualizer_data_node.get_mutex());
-          _conflicts[msg->conflict_version] = msg->participants;
-        },
-        sub_conflict_opt);
-
-    _conflict_conclusion_sub = this->create_subscription<ConflictConclusion>(
-          rmf_traffic_ros2::ScheduleConflictConclusionTopicName,
-          rclcpp::ServicesQoS(),
-          [&](ConflictConclusion::UniquePtr msg)
-    {
-        std::lock_guard<std::mutex> guard(_visualizer_data_node.get_mutex());
-        _conflicts.erase(msg->conflict_version);
-    });
-
-=======
->>>>>>> master
     // Create subscriber for rviz_param in separate thread
     _cb_group_param_sub = this->create_callback_group(
         rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
@@ -641,18 +603,9 @@ private:
 
   bool is_conflict(int64_t id)
   {
-<<<<<<< HEAD
-    for (const auto& c : _conflicts)
-    {
-      if (std::find(c.second.begin(), c.second.end(), id) != c.second.end())
-        return true;
-    }
-
-=======
     const auto& conflicts = _visualizer_data_node.get_conflicts();
     if (conflicts.find(id) != conflicts.end())
       return true;
->>>>>>> master
     return false;
   }
 
