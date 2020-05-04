@@ -606,18 +606,9 @@ private:
 
   bool is_conflict(int64_t id)
   {
-<<<<<<< HEAD
-    for (const auto& c : _conflicts)
-    {
-      if (std::find(c.second.begin(), c.second.end(), id) != c.second.end())
-        return true;
-    }
-
-=======
     const auto& conflicts = _visualizer_data_node.get_conflicts();
     if (conflicts.find(id) != conflicts.end())
       return true;
->>>>>>> master
     return false;
   }
 

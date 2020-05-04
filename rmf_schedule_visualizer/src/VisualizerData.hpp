@@ -39,7 +39,6 @@
 
 #include <set>
 #include <mutex>
-#include <unordered_set>
 
 namespace rmf_schedule_visualizer {
 
