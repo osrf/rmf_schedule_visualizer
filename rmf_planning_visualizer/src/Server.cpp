@@ -147,11 +147,13 @@ auto Server::get_request_type(const server::message_ptr& msg)
   {
     json j = json::parse(msg_payload);
 
-    if (j.size() != 2 || j.count("request") != 1 || j.count("param") != 1)
+    if (j.size() != 3 || 
+        j.count("request") != 1 || 
+        j.count("id") != 1 ||
+        j.count("param") != 1)
       return RequestType::Undefined;
 
-    if (j["request"] == "planner_config" && 
-        j["param"].count("id") == 1 &&
+    if (j["request"] == "planner_config" &&
         j["param"].count("profile_radius") == 1 &&
         j["param"].count("linear_velocity") == 1 &&
         j["param"].count("linear_acceleration") == 1 &&
@@ -159,19 +161,16 @@ auto Server::get_request_type(const server::message_ptr& msg)
         j["param"].count("angular_acceleration") == 1 &&
         j["param"].count("graph_file_path") == 1)
       return RequestType::PlannerConfig;
-    else if (j["request"] == "start_planning" && 
-        j["param"].count("id") == 1 &&
+    else if (j["request"] == "start_planning" &&
         j["param"].count("start") == 1 &&
         j["param"]["start"].count("x") == 1 &&
         j["param"]["start"].count("y") == 1 && 
         j["param"]["start"].count("yaw") == 1 &&
         j["param"].count("goal") == 1)
       return RequestType::StartPlanning;
-    else if (j["request"] == "step" && 
-        j["param"].count("id") == 1)
+    else if (j["request"] == "step")
       return RequestType::Step;
-    else if (j["request"] == "close_planner" && 
-        j["param"].count("id") == 1)
+    else if (j["request"] == "close_planner")
       return RequestType::ClosePlanner;
     else
       return RequestType::Undefined;
@@ -190,8 +189,8 @@ void Server::get_planner_config_response(
 {
   std::string msg_payload = msg->get_payload();
   json j_req = json::parse(msg_payload);
+  std::string planning_instance_id = j_req["id"];
   json j_param = j_req["param"];
-  std::string planning_instance_id = j_param["id"];
 
   json j_res = _j_res;
   j_res["response"] = "planner_config";
@@ -291,8 +290,8 @@ void Server::get_start_planning_response(
 
   std::string msg_payload = msg->get_payload();
   json j_req = json::parse(msg_payload);
+  std::string planning_instance_id = j_req["id"];
   json j_param = j_req["param"];
-  std::string planning_instance_id = j_param["id"];
 
   // TODO: Allow multiple planning instances, identified by their ID
   if (planning_instance_id != _planning_instance->id)
@@ -354,8 +353,7 @@ void Server::get_step_response(
 
   std::string msg_payload = msg->get_payload();
   json j_req = json::parse(msg_payload);
-  json j_param = j_req["param"];
-  std::string planning_instance_id = j_param["id"];
+  std::string planning_instance_id = j_req["id"];
 
   // TODO: Allow multiple planning instances, identified by their ID
   if (planning_instance_id != _planning_instance->id)
@@ -387,8 +385,7 @@ void Server::get_close_planner_response(
 
   std::string msg_payload = msg->get_payload();
   json j_req = json::parse(msg_payload);
-  json j_param = j_req["param"];
-  std::string planning_instance_id = j_param["id"];
+  std::string planning_instance_id = j_req["id"];
 
   // TODO: Allow multiple planning instances, identified by their ID
   if (planning_instance_id != _planning_instance->id)

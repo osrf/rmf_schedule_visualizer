@@ -192,24 +192,28 @@ int main(int argc, char** argv)
     return 1;
   }
 
+  int step_num = planning_inspector->step_num();
+  auto planning_state = planning_inspector->get_state();
+  std::string state_printout = 
+        rmf_visualizer::planning::print_planning_state_response(
+            planning_state, b1.id(), 0.3);
+  std::cout << "STEP [" << step_num << "]:" << std::endl;
+  std::cout << state_printout << std::endl << std::endl;
+
   bool plan_completed = false;
   while (!plan_completed)
   {
     planning_inspector->step();
-
-    int step_num = planning_inspector->step_num();
-    auto planning_state = planning_inspector->get_state();
-    // planning_state->print();
+    step_num = planning_inspector->step_num();
+    planning_state = planning_inspector->get_state();
+    state_printout = 
+        rmf_visualizer::planning::print_planning_state_response(
+            planning_state, b1.id(), 0.3);
+    std::cout << "STEP [" << step_num << "]:" << std::endl;
+    std::cout << state_printout << std::endl << std::endl;
 
     plan_completed = planning_inspector->plan_completed();
   }
-
-  auto final_state = planning_inspector->get_state();
-  std::string printout = 
-      rmf_visualizer::planning::print_planning_state_response(
-          final_state, b1.id(), 0.3);
-  std::cout << "HERE COMES THE PRINTOUT:" << std::endl;
-  std::cout << printout << std::endl;
 
   return 0;
 }
