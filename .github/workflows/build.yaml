@@ -10,7 +10,7 @@ jobs:
     - name: deps
       run: |
         sudo apt update
-        sudo apt-get install python3-shapely python3-yaml \
+        sudo apt-get install python3-shapely python3-yaml python3-requests \
         libboost-system-dev libboost-date-time-dev libboost-regex-dev libboost-random-dev -y
     - name: setup
       run: |
