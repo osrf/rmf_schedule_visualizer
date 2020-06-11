@@ -12,11 +12,13 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install wget pycodestyle
-    - name: style-check
+    - name: rmf_uncrustify
       shell: bash
       run: |
-        ls
         wget https://raw.githubusercontent.com/osrf/rmf_core/master/rmf_utils/test/format/rmf_code_style.cfg
         source /opt/ros/eloquent/setup.bash
         ament_uncrustify -c rmf_code_style.cfg rviz2_plugin/ rmf_schedule_visualizer/src/ rmf_schedule_visualizer/test/
+    - name: pycodestyle
+      shell: bash
+      run: |
         pycodestyle .
