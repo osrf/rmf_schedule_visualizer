@@ -9,9 +9,13 @@ jobs:
     steps:
     - name: deps
       run: |
+        sudo apt-get update
+        sudo apt-get install -y wget
+        echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable bionic main" > /etc/apt/sources.list.d/gazebo-stable.list
+        wget https://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
         sudo apt update
         sudo apt-get install python3-shapely python3-yaml python3-requests \
-        libboost-system-dev libboost-date-time-dev libboost-regex-dev libboost-random-dev -y
+        libignition-common3-dev libignition-plugin-dev libboost-system-dev libboost-date-time-dev libboost-regex-dev libboost-random-dev -y
     - name: setup
       run: |
         cd /home/
@@ -30,7 +34,7 @@ jobs:
       run: |
         cd /home/ws_rmf
         rosdep update
-        rosdep install --from-paths src --ignore-src --rosdistro eloquent -y --skip-keys "ament_python"
+        rosdep install --from-paths src --ignore-src --rosdistro eloquent -y --skip-keys "ament_python libignition-common3 libignition-plugin-dev"
     - name: build
       shell: bash
       run: |
