@@ -34,7 +34,7 @@ jobs:
       run: |
         cd /home/ws_rmf
         rosdep update
-        rosdep install --from-paths src --ignore-src --rosdistro eloquent -y --skip-keys "libignition-common3 libignition-plugin-dev"
+        rosdep install --from-paths src --ignore-src --rosdistro eloquent -yr
     - name: build
       shell: bash
       run: |
