@@ -10,8 +10,12 @@ jobs:
     - name: deps
       run: |
         sudo apt update
-        sudo apt-get install libwebsocketpp-dev python3-shapely python3-yaml \
-        libboost-system-dev libboost-date-time-dev libboost-regex-dev libboost-random-dev -y
+        sudo apt install -y wget
+        echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable bionic main" > /etc/apt/sources.list.d/gazebo-stable.list
+        wget https://packages.osrfoundation.org/gazebo.key -O - | apt-key add -
+        sudo apt update
+        sudo apt install python3-shapely python3-yaml python3-requests \
+        libignition-common3-dev libignition-plugin-dev libboost-system-dev libboost-date-time-dev libboost-regex-dev libboost-random-dev -y
     - name: setup
       run: |
         cd /home/
@@ -19,7 +23,7 @@ jobs:
         cd ws_rmf/src
         git clone https://github.com/osrf/traffic_editor
         git clone https://github.com/osrf/rmf_core
-        git clone https://github.com/osrf/rmf_schedule_visualizer
+        git clone https://github.com/"${GITHUB_REPOSITORY}"
         
     - name: checkout
       shell: bash
@@ -30,8 +34,7 @@ jobs:
       run: |
         cd /home/ws_rmf
         rosdep update
-        rosdep install --from-paths src --ignore-src --rosdistro eloquent \
-          -y --skip-keys "websocketpp ament_python"
+        rosdep install --from-paths src --ignore-src --rosdistro eloquent -yr
     - name: build
       shell: bash
       run: |
