@@ -7,6 +7,5 @@ Forthcoming
 
 1.0.0 (2020-06-22)
 ------------------
-* Merge branch 'master' into frontend-slider-control
-* Visualize the schedule using markers in rviz2 (`#13 <https://github.com/osrf/rmf_schedule_visualizer/issues/13>`_)
-* Contributors: Grey, Hellyna NG
+* Message definition with parameters to query the `rmf traffic schedule`
+* Contributors: Grey, Yadu
