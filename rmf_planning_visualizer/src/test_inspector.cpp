@@ -94,7 +94,7 @@ int main(int argc, char** argv)
 
   const rmf_traffic::agv::Planner::Configuration config_b{graph_b, traits_b};
 
-  rmf_traffic::schedule::Database database;
+  auto database = std::make_shared<rmf_traffic::schedule::Database>();
 
   auto b1 = rmf_traffic::schedule::make_participant(
       rmf_traffic::schedule::ParticipantDescription{
@@ -125,9 +125,9 @@ int main(int argc, char** argv)
   const auto time = std::chrono::steady_clock::now();
 
   auto b1_starts = rmf_traffic::agv::compute_plan_starts(
-      graph_b, {16.858, -15.758, -M_PI/2.0}, time);
+      graph_b, test_map_name, {16.858, -15.758, -M_PI/2.0}, time);
   auto b2_starts = rmf_traffic::agv::compute_plan_starts(
-      graph_b, {16.83, -17.26, -M_PI/2.0}, time);
+      graph_b, test_map_name, {16.83, -17.26, -M_PI/2.0}, time);
 
   bool started = 
       planning_inspector->begin(

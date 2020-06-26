@@ -65,7 +65,7 @@ rmf_utils::optional<GraphInfo> parse_graph(
       const Eigen::Vector2d location{
         vertex[0].as<double>(), vertex[1].as<double>()};
 
-      const auto& wp = info.graph.add_waypoint(map_name, location, true);
+      const auto& wp = info.graph.add_waypoint(map_name, location);
 
       const YAML::Node& options = vertex[2];
       const YAML::Node& name_option = options["name"];
@@ -90,7 +90,7 @@ rmf_utils::optional<GraphInfo> parse_graph(
       if (workcell_name_option)
       {
         const std::string& workcell = workcell_name_option.as<std::string>();
-        info.workcell_names.insert({wp.index(), workcell});
+        info.workcell_names.insert(std::make_pair(wp.index(), workcell));
       }
 
       const YAML::Node& parking_spot_option = options["is_parking_spot"];

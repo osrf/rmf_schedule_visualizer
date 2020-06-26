@@ -241,7 +241,7 @@ void Server::get_planner_config_response(
   const rmf_traffic::agv::Planner::Configuration planner_config {
       graph_info.value().graph, traits};
 
-  rmf_traffic::schedule::Database database;
+  auto database = std::make_shared<rmf_traffic::schedule::Database>();
 
   auto participant = rmf_traffic::schedule::make_participant(
       rmf_traffic::schedule::ParticipantDescription {
@@ -264,7 +264,7 @@ void Server::get_planner_config_response(
       std::move(profile),
       std::move(traits),
       std::move(graph_info.value()),
-      std::move(database),
+      database,
       std::move(participant),
       std::move(planner),
       inspector_ptr});
@@ -318,6 +318,7 @@ void Server::get_start_planning_response(
   const auto time_now = std::chrono::steady_clock::now();
   auto starts = rmf_traffic::agv::compute_plan_starts(
       _planning_instance->graph_info.graph,
+      "test_map",
       {start_x, start_y, start_yaw},
       time_now);
   bool started = _planning_instance->inspector->begin(

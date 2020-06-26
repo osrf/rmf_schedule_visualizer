@@ -76,7 +76,7 @@ public:
 
     GraphInfo graph_info;
 
-    rmf_traffic::schedule::Database database;
+    std::shared_ptr<rmf_traffic::schedule::Database> database;
 
     rmf_traffic::schedule::Participant participant;
 
