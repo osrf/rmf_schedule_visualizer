@@ -235,43 +235,44 @@ private:
   {
 
     auto convert_to_delete = [=](MarkerArray array) -> MarkerArray
-    {
-      for (auto& marker : array.markers)
+      {
+        for (auto& marker : array.markers)
         {
           marker.header.stamp = rmf_traffic_ros2::convert(
-              _visualizer_data_node.now());
+            _visualizer_data_node.now());
           marker.action = marker.DELETE;
         }
-      return array;
-    };
+        return array;
+      };
 
-    auto make_label = [&](const GraphNode& node, const uint64_t count) -> Marker
-    {
-      Marker label_marker;
-      label_marker.header.frame_id = _frame_id; // map
-      label_marker.header.stamp = rmf_traffic_ros2::convert(
+    auto make_label =
+      [&](const GraphNode& node, const uint64_t count) -> Marker
+      {
+        Marker label_marker;
+        label_marker.header.frame_id = _frame_id; // map
+        label_marker.header.stamp = rmf_traffic_ros2::convert(
           _visualizer_data_node.now());
-      label_marker.ns = "labels";
-      label_marker.id = count;
-      label_marker.type = label_marker.TEXT_VIEW_FACING;
-      label_marker.action = label_marker.MODIFY;
+        label_marker.ns = "labels";
+        label_marker.id = count;
+        label_marker.type = label_marker.TEXT_VIEW_FACING;
+        label_marker.action = label_marker.MODIFY;
 
-      // Set the pose of the marker
-      label_marker.pose.orientation.w = 1;
-      label_marker.pose.position.x = node.x + 1.0 * std::cos(0.7853);
-      label_marker.pose.position.y = node.y + 1.0 * std::sin(0.7853);
-      label_marker.pose.position.z = 0.0;
+        // Set the pose of the marker
+        label_marker.pose.orientation.w = 1;
+        label_marker.pose.position.x = node.x + 0.4 * std::cos(0.7853);
+        label_marker.pose.position.y = node.y + 0.4 * std::sin(0.7853);
+        label_marker.pose.position.z = 0.0;
 
-      // Set the scale of the marker
-      label_marker.scale.z = 0.7;
+        // Set the scale of the marker
+        label_marker.scale.z = 0.2;
 
-      // Set the text of the marker
-      label_marker.text = node.name.c_str();
-      // Set the color of the marker
-      label_marker.color = make_color(1, 1, 1);
+        // Set the text of the marker
+        label_marker.text = node.name.c_str();
+        // Set the color of the marker
+        label_marker.color = make_color(1, 1, 1);
 
-      return label_marker;
-    };
+        return label_marker;
+      };
 
     auto marker_it = _map_markers_cache.find(_level.name.c_str());
 
@@ -296,7 +297,7 @@ private:
     if (_active_map_name != _level.name.c_str())
     {
       auto it = _map_markers_cache.find(_active_map_name);
-      if(it != _map_markers_cache.end())
+      if (it != _map_markers_cache.end())
       {
         auto array = convert_to_delete(it->second);
         _map_markers_pub->publish(array);
@@ -320,7 +321,7 @@ private:
       Marker node_marker;
       node_marker.header.frame_id = _frame_id; // map
       node_marker.header.stamp = rmf_traffic_ros2::convert(
-          _visualizer_data_node.now());
+        _visualizer_data_node.now());
       node_marker.ns = "map";
       node_marker.id = 0;
       node_marker.type = node_marker.POINTS;
@@ -347,7 +348,7 @@ private:
           node_marker.points.push_back(make_point({vertex.x, vertex.y, 0}));
           if (!vertex.name.empty())
             marker_array.markers.push_back(
-                make_label(vertex, waypoint_count));
+              make_label(vertex, waypoint_count));
           ++waypoint_count;
         }
         // Unique lane marker for each graph
@@ -364,18 +365,18 @@ private:
         }
         graph_count++;
         // Insert lane marker to marker_array
-         marker_array.markers.push_back(lane_marker);
+        marker_array.markers.push_back(lane_marker);
       }
       marker_array.markers.push_back(node_marker);
 
       if (marker_array.markers.size() > 0)
       {
         _map_markers_cache.insert(
-            std::make_pair(_level.name.c_str(), marker_array));
+          std::make_pair(_level.name.c_str(), marker_array));
         _map_markers_pub->publish(marker_array);
         _active_map_name = _level.name.c_str();
       }
-    }      
+    }
   }
 
   void delete_marker(const uint64_t id, MarkerArray& marker_array)
@@ -383,7 +384,7 @@ private:
     Marker marker_msg;
     marker_msg.header.frame_id = _frame_id; // map
     marker_msg.header.stamp = rmf_traffic_ros2::convert(
-        _visualizer_data_node.now());
+      _visualizer_data_node.now());
     marker_msg.ns = "trajectory";
     marker_msg.id = id;
     marker_msg.type = marker_msg.CYLINDER;
@@ -397,32 +398,24 @@ private:
   }
 
   visualization_msgs::msg::Marker make_location_marker(
-        Element element,
-        const RequestParam param)
+    const Element& element,
+    const RequestParam& param,
+    const Eigen::Vector3d& position,
+    const double radius,
+    const double height,
+    int32_t id,
+    const Color& color)
   {
     Marker marker_msg;
 
-    // TODO Link the color, shape and size of marker to profile of trajectory
-    const auto& trajectory = element.route.trajectory();
-
-    const double radius = static_cast<const rmf_traffic::geometry::Circle&>(
-          element.description.profile().footprint()->source()).get_radius();
-
     marker_msg.header.frame_id = _frame_id; // map
     marker_msg.header.stamp = rmf_traffic_ros2::convert(param.start_time);
-    marker_msg.ns = "participant " + std::to_string(element.participant);
-    marker_msg.id = element.route_id;
+    marker_msg.ns = "participant location " +
+      std::to_string(element.participant);
+    marker_msg.id = id;
     marker_msg.type = marker_msg.CYLINDER;
-    marker_msg.action = marker_msg.MODIFY;
+    marker_msg.action = marker_msg.ADD;
 
-    // Set the pose of the marker
-    const auto it = trajectory.find(param.start_time);
-    auto begin = it; --begin;
-    auto end = it; ++end;
-    auto motion = rmf_traffic::Motion::compute_cubic_splines(begin, end);
-    Eigen::Vector3d position =  motion->compute_position(param.start_time);
-    if (!check_limits(position, "motion_location_marker"))
-      return marker_msg;
     marker_msg.pose.position.x = position[0];
     marker_msg.pose.position.y = position[1];
     marker_msg.pose.position.z = 0;
@@ -436,11 +429,11 @@ private:
     // Set the scale of the marker
     marker_msg.scale.x = radius / 1.0;
     marker_msg.scale.y = radius / 1.0;
-    marker_msg.scale.z = 1.0;
+    marker_msg.scale.z = height;
 
     // Set the color of the marker
-    marker_msg.color = make_color(1.0, 1.0, 0, 0.7);
-    
+    marker_msg.color = color;
+
     // Set the lifetime of the marker
     if (_rate <= 1)
       marker_msg.lifetime = convert(_timer_period);
@@ -455,9 +448,59 @@ private:
     return marker_msg;
   }
 
+  visualization_msgs::msg::Marker make_footprint_marker(
+    const Element& element,
+    const RequestParam& param,
+    const Eigen::Vector3d& position)
+  {
+    const double r_footprint =
+      static_cast<const rmf_traffic::geometry::Circle&>(
+      element.description.profile().footprint()->source()).get_radius();
+
+    return make_location_marker(element,
+        param, position, r_footprint, 1.0, 0, make_color(1.0, 1.0, 0, 0.7));
+  }
+
+  visualization_msgs::msg::Marker make_vicinity_marker(
+    const Element& element,
+    const RequestParam& param,
+    const Eigen::Vector3d& position)
+  {
+    const double r_vicinity =
+      static_cast<const rmf_traffic::geometry::Circle&>(
+      element.description.profile().vicinity()->source()).get_radius();
+
+    return make_location_marker(element,
+        param, position, r_vicinity, 0.5, 1, make_color(0.5, 1.0, 0.9, 0.5));
+  }
+
+  void add_location_markers(
+    std::vector<visualization_msgs::msg::Marker>& array,
+    const Element& element,
+    const RequestParam& param)
+  {
+    // TODO Link the color, shape and size of marker to profile of trajectory
+    const auto& trajectory = element.route.trajectory();
+
+    // Find the pose of the markers
+    const auto it = trajectory.find(param.start_time);
+    auto begin = it;
+    if (begin != trajectory.begin())
+      --begin;
+    auto end = it; ++end;
+    auto motion = rmf_traffic::Motion::compute_cubic_splines(begin, end);
+    Eigen::Vector3d position = motion->compute_position(param.start_time);
+
+    array.push_back(make_footprint_marker(element, param, position));
+
+    if (element.description.profile().vicinity() !=
+      element.description.profile().footprint())
+      array.push_back(make_vicinity_marker(element, param, position));
+  }
+
   visualization_msgs::msg::Marker make_path_marker(
-        Element element,
-        const RequestParam param)
+    Element element,
+    const RequestParam param)
   {
     // TODO Link the color, shape and size of marker to profile of trajectory
     const auto& trajectory = element.route.trajectory();
@@ -468,14 +511,14 @@ private:
     marker_msg.header.frame_id = _frame_id; // map
     marker_msg.header.stamp = rmf_traffic_ros2::convert(param.start_time);
     marker_msg.ns = "participant " + std::to_string(element.participant);
-    marker_msg.id = -1*element.route_id;
+    marker_msg.id = element.route_id;
     marker_msg.type = marker_msg.LINE_STRIP;
     marker_msg.action = marker_msg.MODIFY;
 
     marker_msg.pose.orientation.w = 1;
 
     // Set the scale of the marker
-    marker_msg.scale.x =  0.2;
+    marker_msg.scale.x = 0.2;
 
     // Set the color
     if (conflict)
@@ -486,7 +529,7 @@ private:
     {
       marker_msg.color = make_color(0.0, 1.0, 0, 0.7);
     }
-    
+
     if (_rate <= 1)
       marker_msg.lifetime = convert(_timer_period);
     else
@@ -501,72 +544,48 @@ private:
     const auto start_time = std::max(t_start_time, param.start_time);
     const auto t_finish_time = *trajectory.finish_time();
     const auto end_time = std::min(t_finish_time, param.finish_time);
- 
+
     auto it = trajectory.find(start_time);
     assert(it != trajectory.end());
     assert(trajectory.find(end_time) != trajectory.end());
-    auto begin = it; --begin;
+    auto begin = it;
+    if (begin != trajectory.begin())
+      --begin;
     auto end = it; ++end;
     const auto motion = rmf_traffic::Motion::compute_cubic_splines(begin, end);
-    if (!check_limits(motion->compute_position(start_time), "motion_path_start"))
-      return marker_msg;
     marker_msg.points.push_back(
-          make_point(motion->compute_position(start_time)));
+      make_point(motion->compute_position(start_time)));
 
-    // Add segment points untill the last segment
+    // Add segment points except the last segment
     for (; it < trajectory.find(end_time); it++)
     {
       assert(it != trajectory.end());
       const Eigen::Vector3d p = it->position();
-      if (!check_limits(p, "segment_iterator"))
-        return marker_msg;
       marker_msg.points.push_back(make_point(p));
     }
 
     // Add either last segment point or position at end_time
-    if (t_finish_time < param.finish_time)
+    if (t_finish_time <= param.finish_time)
     {
-      if (!check_limits(it->position(), "last_segment"))
-        return marker_msg;
       marker_msg.points.push_back(make_point(it->position()));
     }
     else
     {
       const auto motion =
-          rmf_traffic::Motion::compute_cubic_splines(it, trajectory.end());
-      if (!check_limits(motion->compute_position(end_time), "motion_path_end"))
-        return marker_msg;
+        rmf_traffic::Motion::compute_cubic_splines(--it, trajectory.end());
       marker_msg.points.push_back(
-            make_point(motion->compute_position(end_time)));
+        make_point(motion->compute_position(end_time)));
     }
 
     return marker_msg;
   }
 
-  bool check_limits(const Eigen::Vector3d& position, const std::string& parent)
-  {
-    const auto max_value = std::numeric_limits<uint16_t>::max();
-    for (size_t i = 0; i < 3; i++)
-    {
-      if(std::abs(position[i]) > max_value)
-      {
-        RCLCPP_ERROR(get_logger(), "Parent: [%s], Positional value exceeding limit: [%f]",
-          parent.c_str(), position[i]);
-        return false;
-      }
-    }
-    return true;
-  }
-
   Point make_point(const Eigen::Vector3d tp, bool z = false)
   {
     Point p;
-    if (check_limits(tp, "make_point"))
-    {
-      p.x = tp[0];
-      p.y = tp[1];
-      p.z = z ? tp[2] : 0;
-    }
+    p.x = tp[0];
+    p.y = tp[1];
+    p.z = z ? tp[2] : 0;
     return p;
   }
 
@@ -574,10 +593,10 @@ private:
   {
     builtin_interfaces::msg::Duration result;
     result.sec = std::chrono::duration_cast<
-        std::chrono::seconds>(duration).count();
+      std::chrono::seconds>(duration).count();
     const auto nanoseconds = duration - std::chrono::seconds(result.sec);
     result.nanosec = nanoseconds.count();
-    
+
     return result;
   }
 
@@ -586,7 +605,7 @@ private:
     double w, x, y, z;
   };
 
-  quaternion convert(double yaw, double pitch = 0, double roll =0)
+  quaternion convert(double yaw, double pitch = 0, double roll = 0)
   {
     double cy = cos(yaw * 0.5);
     double sy = sin(yaw * 0.5);
@@ -623,22 +642,22 @@ private:
   }
 
   void set_color_list(float alpha = 1)
-  { 
+  {
     // List of colors that will be paired with graph ids.
     // Add additional colors here.
     // Orange
     _color_list.push_back(make_color(0.99, 0.5, 0.19, alpha));
     // Blue
-    _color_list.push_back(make_color(0, 0.5, 0.8, alpha));     
-    // Purple 
+    _color_list.push_back(make_color(0, 0.5, 0.8, alpha));
+    // Purple
     _color_list.push_back(make_color(0.57, 0.12, 0.7, alpha));
     // Teal
     _color_list.push_back(make_color(0, 0.5, 0.5, alpha));
-    // Lavender 
+    // Lavender
     _color_list.push_back(make_color(0.9, 0.74, 1.0, alpha));
     // Olive
     _color_list.push_back(make_color(0.5, 0.5, 0, alpha));
-    // Cyan    
+    // Cyan
     _color_list.push_back(make_color(0.27, 0.94, 0.94, alpha));
     // Grey
     _color_list.push_back(make_color(0.5, 0.5, 0.5, alpha));
@@ -649,7 +668,7 @@ private:
   Color get_color(uint64_t id)
   {
     if (_color_map.find(id) != _color_map.end())
-        return _color_map[id];
+      return _color_map[id];
     else
     {
       Color color;
@@ -679,18 +698,18 @@ private:
         {
           _has_level = true;
           _level = level;
-          RCLCPP_INFO(this->get_logger(),"Level cache updated");
+          RCLCPP_INFO(this->get_logger(), "Level cache updated");
           break;
         }
       }
 
       if (!_has_level)
       {
-        RCLCPP_INFO(this->get_logger(),"Level cache not updated");
+        RCLCPP_INFO(this->get_logger(), "Level cache not updated");
       }
 
       publish_map_markers();
-      
+
     }
   }
 
@@ -703,14 +722,10 @@ private:
 
   double _rate;
   std::string _frame_id;
-  std::unordered_set<uint64_t> _marker_tracker; 
+  std::unordered_set<uint64_t> _marker_tracker;
   std::vector<rmf_traffic::Trajectory> _trajectories;
   std::vector<Element> _elements;
   std::chrono::nanoseconds _timer_period;
-
-  std::unordered_map<
-      rmf_traffic::schedule::Version,
-      std::vector<rmf_traffic::schedule::ParticipantId>> _conflicts;
 
   BuildingMap _map_msg;
   bool _has_level;
@@ -724,10 +739,6 @@ private:
   rclcpp::TimerBase::SharedPtr _timer;
   rclcpp::Publisher<MarkerArray>::SharedPtr _schedule_markers_pub;
   rclcpp::Publisher<MarkerArray>::SharedPtr _map_markers_pub;
-  rclcpp::Subscription<ConflictNotice>::SharedPtr _conflict_notice_sub;
-  rclcpp::Subscription<ConflictConclusion>::SharedPtr _conflict_conclusion_sub;
-
-  rclcpp::callback_group::CallbackGroup::SharedPtr _cb_group_conflict_sub;
   rclcpp::Subscription<RvizParamMsg>::SharedPtr _param_sub;
   rclcpp::callback_group::CallbackGroup::SharedPtr _cb_group_param_sub;
   rclcpp::Subscription<BuildingMap>::SharedPtr _map_sub;
@@ -739,11 +750,11 @@ private:
 };
 
 bool get_arg(
-    const std::vector<std::string>& args,
-    const std::string& key,
-    std::string& value,
-    const std::string& desc,
-    const bool mandatory = true)
+  const std::vector<std::string>& args,
+  const std::string& key,
+  std::string& value,
+  const std::string& desc,
+  const bool mandatory = true)
 {
   const auto key_arg = std::find(args.begin(), args.end(), key);
   if (key_arg == args.end())
@@ -769,20 +780,20 @@ bool get_arg(
 int main(int argc, char* argv[])
 {
   const std::vector<std::string> args =
-      rclcpp::init_and_remove_ros_arguments(argc, argv);
+    rclcpp::init_and_remove_ros_arguments(argc, argv);
 
   std::string node_name = "viz";
   get_arg(args, "-n", node_name, "node name", false);
 
   std::string rate_string;
-  get_arg(args, "-r", rate_string, "rate",false);
-  double rate = rate_string.empty()? 1.0 : std::stod(rate_string);
+  get_arg(args, "-r", rate_string, "rate", false);
+  double rate = rate_string.empty() ? 1.0 : std::stod(rate_string);
 
   std::string map_name = "B1";
   get_arg(args, "-m", map_name, "map name", false);
 
   const auto visualizer_data_node =
-    rmf_schedule_visualizer::VisualizerDataNode::make(node_name);
+    rmf_schedule_visualizer::VisualizerDataNode::make(node_name, 120s);
 
   if (!visualizer_data_node)
   {
@@ -791,14 +802,14 @@ int main(int argc, char* argv[])
   }
 
   RCLCPP_INFO(
-        visualizer_data_node->get_logger(),
-        "VisualizerDataNode /" + node_name + " started...");
+    visualizer_data_node->get_logger(),
+    "VisualizerDataNode /" + node_name + " started...");
 
   auto rviz_node = std::make_shared<RvizNode>(
-      "rviz_node",
-      *visualizer_data_node,
-      std::move(map_name),
-      rate);
+    "rviz_node",
+    *visualizer_data_node,
+    std::move(map_name),
+    rate);
 
   rclcpp::executors::MultiThreadedExecutor executor{
     rclcpp::executor::ExecutorArgs(), 2
@@ -809,8 +820,8 @@ int main(int argc, char* argv[])
 
   executor.spin();
   RCLCPP_INFO(
-        visualizer_data_node->get_logger(),
-        "Closing down");
+    visualizer_data_node->get_logger(),
+    "Closing down");
 
   rclcpp::shutdown();
 }
