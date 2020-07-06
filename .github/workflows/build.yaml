@@ -27,10 +27,10 @@ jobs:
         git clone https://github.com/"${GITHUB_REPOSITORY}"
         
     - name: checkout
-      shell: bash
-      run:  |
-        cd /home/ws_rmf/src/rmf_schedule_visualizer
-        git checkout "${GITHUB_REF:11}"
+      uses: actions/checkout@v2
+      with:
+        path: /home/ws_rmf/src/rmf_schedule_visualizer
+
     - name: ros-deps
       run: |
         cd /home/ws_rmf
@@ -41,4 +41,4 @@ jobs:
       run: |
         cd /home/ws_rmf
         source /opt/ros/eloquent/setup.bash
-        CXX=g++-8 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RELEASE
+        CXX=g++-8 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RELEASE --packages-up-to visualizer
