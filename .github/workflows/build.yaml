@@ -19,17 +19,15 @@ jobs:
         g++-8 -y
     - name: setup
       run: |
-        cd /home/
         mkdir -p ws_rmf/src
         cd ws_rmf/src
         git clone https://github.com/osrf/traffic_editor
         git clone https://github.com/osrf/rmf_core
-        git clone https://github.com/"${GITHUB_REPOSITORY}"
         
     - name: checkout
       uses: actions/checkout@v2
       with:
-        path: /home/ws_rmf/src/rmf_schedule_visualizer
+        path: ws_rmf/src/rmf_schedule_visualizer
 
     - name: ros-deps
       run: |
