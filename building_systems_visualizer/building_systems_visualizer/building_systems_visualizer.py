@@ -72,7 +72,6 @@ class BuildingSystemsVisualizer(Node):
         # data obtained from BuildingMap
         self.building_doors = {}
         self.building_lifts = {}
-        self.door_to_map = {}
 
         # name of the current map to display
         self.map_name = map_name
@@ -242,25 +241,6 @@ class BuildingSystemsVisualizer(Node):
 
         return marker
 
-    def append_door_marker(self, msg, marker_array):
-        marker = self.create_door_marker(msg)
-        text_marker = self.create_door_text_marker(msg)
-        if marker is not None:
-            marker_array.markers.append(marker)
-            self.active_markers[msg.door_name] = marker
-        if text_marker is not None:
-            marker_array.markers.append(text_marker)
-            self.active_markers[f'{msg.door_name}_text'] = text_marker
-
-    def append_lift_marker(self, msg, marker_array, text=True):
-        marker = self.create_lift_marker(msg.lift_name)
-        if marker is not None:
-            marker_array.markers.append(marker)
-        if text:
-            text_marker = self.create_lift_text_marker(msg.lift_name)
-            if text_marker is not None:
-                marker_array.markers.append(text_marker)
-
     def map_cb(self, msg):
         print(f'Received building map with {len(msg.levels)} levels \
           and {len(msg.lifts)} lifts')
@@ -274,28 +254,34 @@ class BuildingSystemsVisualizer(Node):
             self.door_states[level.name] = {}
             for door in level.doors:
                 self.building_doors[level.name][door.name] = door
-                self.door_to_map[door.name] = level.name
         self.initialized = True
 
     def door_cb(self, msg):
         if not self.initialized or \
-          msg.door_name not in self.door_to_map:
+          msg.door_name not in self.building_doors[self.map_name]:
             return
 
         publish_marker = False
-        if self.door_to_map[msg.door_name] == self.map_name:
-            door_states = self.door_states[self.map_name]
-            if msg.door_name not in door_states:
+        door_state = self.door_states[self.map_name]
+        if msg.door_name not in door_state:
+            door_state[msg.door_name] = msg
+            publish_marker = True
+        else:
+            if msg.current_mode.value != \
+              door_state[msg.door_name].current_mode.value:
+                door_state[msg.door_name] = msg
                 publish_marker = True
-            else:
-                if msg.current_mode.value != \
-                  door_states[msg.door_name].current_mode.value:
-                    publish_marker = True
-        self.door_states[self.door_to_map[msg.door_name]][msg.door_name] = msg
 
         if publish_marker:
             marker_array = MarkerArray()
-            self.append_door_marker(msg, marker_array)
+            marker = self.create_door_marker(msg)
+            text_marker = self.create_door_text_marker(msg)
+            if marker is not None:
+                marker_array.markers.append(marker)
+                self.active_markers[msg.door_name] = marker
+            if text_marker is not None:
+                marker_array.markers.append(text_marker)
+                self.active_markers[f'{msg.door_name}_text'] = text_marker
             self.marker_pub.publish(marker_array)
 
     def lift_cb(self, msg):
@@ -315,7 +301,12 @@ class BuildingSystemsVisualizer(Node):
 
         if publish_marker:
             marker_array = MarkerArray()
-            self.append_lift_marker(msg, marker_array)
+            marker = self.create_lift_marker(msg.lift_name)
+            text_marker = self.create_lift_text_marker(msg.lift_name)
+            if marker is not None:
+                marker_array.markers.append(marker)
+            if text_marker is not None:
+                marker_array.markers.append(text_marker)
             self.marker_pub.publish(marker_array)
 
     def param_cb(self, msg):
@@ -331,17 +322,11 @@ class BuildingSystemsVisualizer(Node):
                 marker.action = Marker.DELETE
                 marker_array.markers.append(marker)
         self.active_markers = {}
-
-        # displaying door markers on the current level
-        for door_name, door_state in self.door_states[self.map_name].items():
-            self.append_door_marker(door_state, marker_array)
         self.marker_pub.publish(marker_array)
 
-        # updating lift markers
-        marker_array = MarkerArray()
-        for lift_name, lift_state in self.lift_states.items():
-            self.append_lift_marker(lift_state, marker_array, text=False)
-        self.marker_pub.publish(marker_array)
+        # clearing door states and lift states to that markers can be updated
+        self.door_states[self.map_name] = {}
+        self.lift_states = {}
 
 
 def main(argv=sys.argv):
