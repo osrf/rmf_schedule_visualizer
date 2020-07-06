@@ -324,7 +324,7 @@ class BuildingSystemsVisualizer(Node):
         self.active_markers = {}
         self.marker_pub.publish(marker_array)
 
-        # clearing door states and lift states to that markers can be updated
+        # clearing door states and lift states so that markers can be updated
         self.door_states[self.map_name] = {}
         self.lift_states = {}
 
