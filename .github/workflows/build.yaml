@@ -31,12 +31,12 @@ jobs:
 
     - name: ros-deps
       run: |
-        cd /home/ws_rmf
+        cd ws_rmf
         rosdep update
         rosdep install --from-paths src --ignore-src --rosdistro eloquent -yr
     - name: build
       shell: bash
       run: |
-        cd /home/ws_rmf
+        cd ws_rmf
         source /opt/ros/eloquent/setup.bash
         CXX=g++-8 colcon build --cmake-args -DCMAKE_BUILD_TYPE=RELEASE --packages-up-to visualizer
