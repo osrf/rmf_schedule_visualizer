@@ -29,6 +29,7 @@ find_package(rmf_schedule_visualizer_msgs REQUIRED)
 find_package(rviz_common REQUIRED)
 find_package(rviz_rendering REQUIRED)
 find_package(rviz_default_plugins REQUIRED)
+find_package(rmf_traffic_ros2 REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Widgets Test)
 
 add_definitions(-DQT_NO_KEYWORDS)
@@ -37,6 +38,7 @@ add_library(${PROJECT_NAME} SHARED
   src/SchedulePanel.cpp
   src/LiftPanel.cpp
   src/DoorPanel.cpp
+  src/NegotiationPanel.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -50,6 +52,7 @@ target_link_libraries(${PROJECT_NAME}
     ${rviz_rendering_LIBRARIES}
     ${rviz_default_plugins_LIBRARIES}
     ${Qt5Widgets_LIBRARIES}
+    rmf_traffic_ros2::rmf_traffic_ros2
 )
 
 target_include_directories(${PROJECT_NAME}
