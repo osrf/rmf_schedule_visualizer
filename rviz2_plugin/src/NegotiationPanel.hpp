@@ -21,8 +21,8 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <rviz_common/panel.hpp>
-#include <rmf_traffic_msgs/msg/negotiation_notice.hpp>
 #include <rmf_traffic_msgs/msg/negotiation_status.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 #include <thread>
 #include <mutex>
 #include <QGraphicsScene>
@@ -48,10 +48,17 @@ public:
   void set_negotiation_printout(const std::string& text);
 
   using NegotiationStatusMsg = rmf_traffic_msgs::msg::NegotiationStatus;
-  void update_negotiation_graph_visuals(NegotiationStatusMsg::SharedPtr msg);
+  void update_negotiation_graph_visuals(const NegotiationStatusMsg& msg);
+
+  void timer_publish_callback();
 
   std::mutex _lock;
-  std::atomic_bool _update_gfx = { false };
+  std::atomic_bool _update_markers = { false };
+
+  std::mutex _lock2;
+  std::vector<rmf_traffic_msgs::msg::Itinerary> _itineraries;
+  std::atomic<int> prev_table_selected = { -1 };
+  rclcpp::Time _animation_timestamp;
   void paintEvent(QPaintEvent *event);
 protected:
   QLineEdit* _conflict_version_editor;
@@ -59,10 +66,24 @@ protected:
   GraphicsScene* _scene;
   QGraphicsView* _view;
 
+  friend class GraphicsScene;
   std::vector<QRectF> _node_rectangles;
+  static const int NO_HIGHLIGHT = -1;
+  int _rect_highlight_idx = NO_HIGHLIGHT; 
 
-  NegotiationStatusMsg::SharedPtr _status_msg;
+  NegotiationStatusMsg _status_msg;
   rclcpp::Subscription<NegotiationStatusMsg>::SharedPtr _negotiation_status_sub;
+
+  using Marker = visualization_msgs::msg::Marker;
+  using MarkerArray = visualization_msgs::msg::MarkerArray;
+  rclcpp::Publisher<MarkerArray>::SharedPtr _negotiation_itinerary_markers_pub;
+
+  rclcpp::TimerBase::SharedPtr _timer;
+
+  uint prev_table_select = -1;
+  using NegotiationStatusTable = rmf_traffic_msgs::msg::NegotiationStatusTable;
+
+
 
   rclcpp::Node::SharedPtr _node;
   std::thread _thread;
@@ -73,9 +94,12 @@ protected:
 class GraphicsScene : public QGraphicsScene
 {
 public:
+  GraphicsScene(NegotiationPanel* parent);
+
   void mouseReleaseEvent(QGraphicsSceneMouseEvent *event);
   void mouseMoveEvent(QGraphicsSceneMouseEvent *event);
 
+  NegotiationPanel* _parent;
 };
 
 
