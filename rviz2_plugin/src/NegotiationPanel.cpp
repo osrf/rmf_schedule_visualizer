@@ -192,7 +192,7 @@ void NegotiationPanel::update_negotiation_graph_visuals(const NegotiationStatusM
     text.append(table.defunct ? "YES\n" : "NO\n");
     {
       QString iter_count;
-      iter_count.sprintf("Itineraries: %d", table.proposals.size());
+      iter_count.sprintf("Itineraries: %lu", table.proposals.size());
       text += iter_count;
     }
     
