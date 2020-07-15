@@ -27,6 +27,7 @@
 
 #include <rmf_traffic_msgs/msg/negotiation_notice.hpp>
 #include <rmf_traffic_msgs/msg/negotiation_conclusion.hpp>
+#include <rmf_traffic_msgs/msg/negotiation_status.hpp>
 
 #include <rmf_schedule_visualizer/CommonData.hpp>
 
@@ -49,6 +50,7 @@ public:
   using Element = rmf_traffic::schedule::Viewer::View::Element;
   using ConflictNotice = rmf_traffic_msgs::msg::NegotiationNotice;
   using ConflictConclusion = rmf_traffic_msgs::msg::NegotiationConclusion;
+  using NegotiationStatus = rmf_traffic_msgs::msg::NegotiationStatus;
   /// Builder function which returns a pointer to VisualizerNode when
   /// the Mirror Manager is readied and websocket is started.
   /// A nullptr is returned if initialization fails.
@@ -95,6 +97,10 @@ public:
   rclcpp::Subscription<ConflictConclusion>::SharedPtr _conflict_conclusion_sub;
 
   void start(Data data);
+
+  std::mutex _negotiation_status_mutex;
+  NegotiationStatus _negotiation_status_msg;
+  rclcpp::Subscription<NegotiationStatus>::SharedPtr _negotiation_status_sub;
 
   std::vector<rmf_traffic::Trajectory> _trajectories;
   std::string _node_name;

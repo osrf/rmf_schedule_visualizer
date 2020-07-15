@@ -98,6 +98,7 @@ private:
   VisualizerDataNode& _visualizer_data_node;
   bool _is_initialized = false;
   std::unique_ptr<Data> data;
+  rmf_traffic_msgs::msg::NegotiationStatus _status_msg;
 
   // Templates used for response generation
   const json _j_res = { {"response", {}}, {"values", {}}, {"conflicts", {}}};

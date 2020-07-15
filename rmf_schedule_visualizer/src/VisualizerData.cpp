@@ -102,6 +102,14 @@ void VisualizerDataNode::start(Data _data)
       debug_cb(std::move(msg));
     });
 
+  _negotiation_status_sub = this->create_subscription<NegotiationStatus>(
+    rmf_traffic_ros2::NegotiationStatusTopicName,
+    rclcpp::ServicesQoS(),
+    [&](NegotiationStatus::UniquePtr msg)
+    {
+      std::lock_guard<std::mutex> guard(_negotiation_status_mutex);
+      _negotiation_status_msg = *msg;
+    });
 }
 
 void VisualizerDataNode::debug_cb(std_msgs::msg::String::UniquePtr msg)

@@ -166,6 +166,62 @@ bool Server::parse_request(server::message_ptr msg, std::string& response)
       return true;
     }
 
+    else if (j["request"] == "negotiation_status")
+    {
+      json j_res = _j_res;
+      j_res["response"] = "negotiation_status";
+      
+      std::lock_guard<std::mutex> guard(_visualizer_data_node._negotiation_status_mutex);
+
+      auto& status_msg = _visualizer_data_node._negotiation_status_msg;
+      json j_status_msg;
+
+      j_status_msg["conflict_version"] = status_msg.conflict_version;
+      j_status_msg["participants"] = status_msg.participants;
+
+      json j_tables;
+      for (auto& table : status_msg.tables)
+      {
+        json j_table;
+        j_table["proposals_id"] = table.proposals_id;
+        j_table["ongoing"] = table.ongoing;
+        j_table["finished"] = table.finished;
+        j_table["forfeited"] = table.forfeited;
+        j_table["rejected"] = table.rejected;
+        j_table["defunct"] = table.defunct;
+        j_table["parent_index"] = table.parent_index;
+
+        if (table.sequence.size())
+        {
+          uint64_t participant_for = table.sequence.back();
+          j_table["for_participant"] = participant_for;
+          auto accommodating = table.sequence;
+          accommodating.pop_back();
+          j_table["accommodating"] = accommodating;
+        }
+        
+        //@todo: render/draw your graph on romi dashboard first
+        //search in this file 'add_segment' for sending trajectories via websocket
+        for (auto& itin : table.proposals)
+        {
+          json j_itin_array;
+          for (auto& route : itin.routes)
+          {
+            json j_route;
+            //j_route.push_back(route.trajectory);
+          }
+        }
+        j_tables.push_back(j_table);
+      }
+      j_status_msg["tables"] = j_tables;
+
+      j_res["negotiation_status"] = j_status_msg;
+
+      response = j_res.dump();
+      std::cout << response << std::endl;
+      return true;
+    }
+
     else
     {
       return false;
