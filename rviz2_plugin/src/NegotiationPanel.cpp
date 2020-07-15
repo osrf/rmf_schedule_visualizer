@@ -31,6 +31,9 @@
 #include <QPaintEvent>
 #include <QApplication>
 #include <QGraphicsSceneMouseEvent>
+#include <QCheckBox>
+#include <QFormLayout>
+#include <QGroupBox>
 #include <Eigen/Geometry>
 
 namespace rviz2_plugin {
@@ -51,7 +54,7 @@ NegotiationPanel::NegotiationPanel(QWidget* parent)
         std::unique_lock<std::mutex> guard(_lock);
         _status_msg = *msg;
         _update_markers = true;
-        prev_table_selected = -1;
+        prev_table_selected = NON_EXISTENT;
       }
       QApplication::postEvent(this, new QPaintEvent(QRect()));
     }
@@ -59,20 +62,43 @@ NegotiationPanel::NegotiationPanel(QWidget* parent)
 
   _negotiation_itinerary_markers_pub = _node->create_publisher<MarkerArray>(
     "/negotiation_itinary_markers", rclcpp::SystemDefaultsQoS());
+  
 
   // UI initialization
+  this->setMaximumHeight(600);
   _scene = new GraphicsScene(this);
   _view = new QGraphicsView(_scene);
+  _view->setMinimumHeight(400);
   _view->show();
 
   QLayout* glayout = new QVBoxLayout();
   glayout->addWidget(_view);
+
+  QGroupBox* groupbox = new QGroupBox("Options");
+  groupbox->setMaximumHeight(100);
+  {
+    _draw_in_betweens = true;
+    QCheckBox* draw_in_betweens_checkbox = new QCheckBox("Draw In-Betweens");
+    draw_in_betweens_checkbox->setTristate(false);
+    draw_in_betweens_checkbox->setCheckState(Qt::CheckState::Checked);
+    connect(draw_in_betweens_checkbox, &QCheckBox::stateChanged,
+      [this]() {
+          _draw_in_betweens = !_draw_in_betweens;
+        });
+
+    QFormLayout* ui_layout = new QFormLayout();
+    ui_layout->addRow(draw_in_betweens_checkbox);
+    groupbox->setLayout(ui_layout);
+  }
   
   QVBoxLayout* layout = new QVBoxLayout;
   layout->addLayout(glayout);
   layout->addStretch();
+  layout->addWidget(groupbox);
+  layout->addStretch();
   setLayout(layout);
 
+  
 #if 0 //quick test code
   {
     NegotiationStatusMsg msg;
@@ -110,7 +136,6 @@ NegotiationPanel::NegotiationPanel(QWidget* parent)
 
 void NegotiationPanel::update_negotiation_graph_visuals(const NegotiationStatusMsg& msg)
 {
-  std::cout << "starting repaint.." << std::endl;
   std::unique_lock<std::mutex> guard(_lock);
   
   _scene->clear();
@@ -143,7 +168,7 @@ void NegotiationPanel::update_negotiation_graph_visuals(const NegotiationStatusM
     QString text;
     text.sprintf("#%d\nFor Participant: %lu\nParent: %s\nAccomodating:\n[", 
       index, participant_for, 
-      table.parent_index == -1 ? "None" : std::to_string(table.parent_index).c_str());
+      table.parent_index == NON_EXISTENT ? "None" : std::to_string(table.parent_index).c_str());
 
     for (uint i=0; i<(table.sequence.size() - 1); ++i)
     {
@@ -165,6 +190,11 @@ void NegotiationPanel::update_negotiation_graph_visuals(const NegotiationStatusM
     text.append(table.rejected ? "YES\n" : "NO\n");
     text.append("Defunct? ");
     text.append(table.defunct ? "YES\n" : "NO\n");
+    {
+      QString iter_count;
+      iter_count.sprintf("Itineraries: %d", table.proposals.size());
+      text += iter_count;
+    }
     
     // add items
     QGraphicsTextItem* textitem = _scene->addText(text);
@@ -202,7 +232,7 @@ void NegotiationPanel::update_negotiation_graph_visuals(const NegotiationStatusM
     box.translate(table_x_offset, current_height_offset);
     _node_rectangles.push_back(box);
 
-    if (table.parent_index != -1 && table.parent_index < (int)_node_rectangles.size())
+    if (table.parent_index != NON_EXISTENT && table.parent_index < (int)_node_rectangles.size())
     {
       float start_x = (box.left() + box.right()) * 0.5f;
       float start_y = box.top();
@@ -217,7 +247,6 @@ void NegotiationPanel::update_negotiation_graph_visuals(const NegotiationStatusM
   }
 
   _scene->update();
-  std::cout << "end repaint" << std::endl;
 }
 
 void NegotiationPanel::paintEvent(QPaintEvent*)
@@ -245,11 +274,11 @@ void NegotiationPanel::timer_publish_callback()
           continue;
       return index;
     }
-    return -1;
+    return NON_EXISTENT;
   };
 
   int table_index = get_selected_table();
-  if (table_index == -1 || table_index >= (int)_status_msg.tables.size())
+  if (table_index == NON_EXISTENT || table_index >= (int)_status_msg.tables.size())
   {
     //RCLCPP_WARN(rclcpp::get_logger("asdsad"), "Invalid table_idx: %d", table_index);
     return;
@@ -303,10 +332,18 @@ void NegotiationPanel::timer_publish_callback()
     for (auto& route : itin.routes)
     {
       visualization_msgs::msg::Marker marker;
+      marker.scale.x = marker.scale.y = marker.scale.z = 0.0625;
+      //marker.header.frame_id = routes.map;
+      marker.header.frame_id = "map";
+      marker.header.stamp = _node->now();
+      marker.id = id++;
+      marker.action = marker.ADD;
+      marker.type = marker.SPHERE_LIST;
+      marker.lifetime = rclcpp::Duration::from_seconds(0.1);
 
       for (uint i=1; i<route.trajectory.waypoints.size(); ++i)
       {
-        auto& start_wp = route.trajectory.waypoints[i-1];
+        auto& start_wp = route.trajectory.waypoints[i - 1];
         auto& end_wp = route.trajectory.waypoints[i];
 
         Eigen::Vector3d p0{ start_wp.position[0], start_wp.position[1], 0.0 };
@@ -318,6 +355,9 @@ void NegotiationPanel::timer_publish_callback()
           unit_v = v / length;
         double length_per_pt = 0.5f;
         int in_between_additions = (int)(length / length_per_pt);
+        int max_additions = 30;
+        if (in_between_additions > max_additions)
+          in_between_additions = max_additions;
         double length_per_segment = length / (double)in_between_additions;
         double height = height_offset + (float)route_index * 2.0f;
         
@@ -334,28 +374,23 @@ void NegotiationPanel::timer_publish_callback()
         };
         add_msg_point(p0);
 
-        for (int j=0; j<in_between_additions; ++j)
+        if (_draw_in_betweens)
         {
-          Eigen::Vector3d pt = p0 + length_per_segment * (double)j * unit_v;
-          add_msg_point(pt);
+          for (int j=0; j<in_between_additions; ++j)
+          {
+            Eigen::Vector3d pt = p0 + length_per_segment * (double)j * unit_v;
+            add_msg_point(pt);
+          }
         }
 
         add_msg_point(p1);
       }
 
-      marker.scale.x = marker.scale.y = marker.scale.z = 0.0625;
-      //marker.header.frame_id = routes.map;
-      marker.header.frame_id = "map";
-      marker.header.stamp = _node->now();
-      marker.id = id++;
-      marker.action = marker.ADD;
-      marker.type = marker.POINTS;
-      marker.lifetime = rclcpp::Duration::from_seconds(0.1);
-      
+      double clip_duration = 2.0;
       rclcpp::Duration anim_dur = _node->now() - _animation_timestamp;
-      double animate_percent = fmod(anim_dur.seconds(), 1.0);
+      double animate_percent = fmod(anim_dur.seconds(), clip_duration) / clip_duration;
       int brightest_index = (int)(animate_percent * (float)marker.points.size());
-      if (marker.points.size() > 3)
+      if (marker.points.size() >= 3 && brightest_index < (int)marker.points.size())
       {
         std_msgs::msg::ColorRGBA target_color = color(1, 1, 1, 1);
         marker.colors[brightest_index] = target_color;
@@ -367,7 +402,8 @@ void NegotiationPanel::timer_publish_callback()
             target_color, 0.5f);
       }
 
-      msg.markers.push_back(marker);
+      if (marker.points.size())
+        msg.markers.push_back(marker);
       ++route_index;
     }
   }
@@ -387,23 +423,6 @@ void GraphicsScene::mouseReleaseEvent(QGraphicsSceneMouseEvent *event)
 
 void GraphicsScene::mouseMoveEvent(QGraphicsSceneMouseEvent *event)
 {
-  //print_items();
-  //update();
-  auto point = event->scenePos();
-
-  QPoint p = point.toPoint();
-  int index = NegotiationPanel::NO_HIGHLIGHT;
-  for (uint i=0; i<_parent->_node_rectangles.size(); ++i)
-  {
-    if (_parent->_node_rectangles[i].contains(p))
-    {
-      index = (int)i;
-      break;
-    }
-  }
-
-  _parent->_rect_highlight_idx = index;
-
   QApplication::postEvent(this, new QPaintEvent(QRect()));
   
   QGraphicsScene::mouseMoveEvent(event);

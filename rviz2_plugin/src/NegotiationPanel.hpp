@@ -57,8 +57,9 @@ public:
 
   std::mutex _lock2;
   std::vector<rmf_traffic_msgs::msg::Itinerary> _itineraries;
-  std::atomic<int> prev_table_selected = { -1 };
+  std::atomic<int> prev_table_selected = { NON_EXISTENT };
   rclcpp::Time _animation_timestamp;
+  std::atomic<bool> _draw_in_betweens = { false };
   void paintEvent(QPaintEvent *event);
 protected:
   QLineEdit* _conflict_version_editor;
@@ -68,8 +69,7 @@ protected:
 
   friend class GraphicsScene;
   std::vector<QRectF> _node_rectangles;
-  static const int NO_HIGHLIGHT = -1;
-  int _rect_highlight_idx = NO_HIGHLIGHT; 
+  static const int NON_EXISTENT = -1;
 
   NegotiationStatusMsg _status_msg;
   rclcpp::Subscription<NegotiationStatusMsg>::SharedPtr _negotiation_status_sub;
@@ -80,7 +80,7 @@ protected:
 
   rclcpp::TimerBase::SharedPtr _timer;
 
-  uint prev_table_select = -1;
+  uint prev_table_select = NON_EXISTENT;
   using NegotiationStatusTable = rmf_traffic_msgs::msg::NegotiationStatusTable;
 
 
