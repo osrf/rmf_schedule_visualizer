@@ -55,9 +55,8 @@ public:
   std::mutex _lock;
   std::atomic_bool _update_markers = { false };
 
-  std::mutex _lock2;
   std::vector<rmf_traffic_msgs::msg::Itinerary> _itineraries;
-  std::atomic<int> prev_table_selected = { NON_EXISTENT };
+  std::atomic<int> _prev_table_selected = { NON_EXISTENT };
   rclcpp::Time _animation_timestamp;
   std::atomic<bool> _draw_in_betweens = { false };
   void paintEvent(QPaintEvent *event);

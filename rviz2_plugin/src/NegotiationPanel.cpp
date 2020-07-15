@@ -54,7 +54,7 @@ NegotiationPanel::NegotiationPanel(QWidget* parent)
         std::unique_lock<std::mutex> guard(_lock);
         _status_msg = *msg;
         _update_markers = true;
-        prev_table_selected = NON_EXISTENT;
+        _prev_table_selected = NON_EXISTENT;
       }
       QApplication::postEvent(this, new QPaintEvent(QRect()));
     }
@@ -204,7 +204,7 @@ void NegotiationPanel::update_negotiation_graph_visuals(const NegotiationStatusM
     rect->setFlag(QGraphicsItem::ItemIsSelectable, true);
     rect->setData(0, QVariant(index));
 
-    if (prev_table_selected == index)
+    if (_prev_table_selected == index)
       rect->setSelected(true);
     
     /*if (index == 2)
@@ -284,9 +284,9 @@ void NegotiationPanel::timer_publish_callback()
     return;
   }
 
-  if (table_index != prev_table_selected)
+  if (table_index != _prev_table_selected)
   {
-    prev_table_selected = table_index;
+    _prev_table_selected = table_index;
     _itineraries.clear();
     _animation_timestamp = _node->now();
 
