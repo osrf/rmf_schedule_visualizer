@@ -184,11 +184,11 @@ bool Server::parse_request(server::message_ptr msg, std::string& response)
       {
         json j_table;
         j_table["proposals_id"] = table.proposals_id;
-        j_table["ongoing"] = table.ongoing;
-        j_table["finished"] = table.finished;
-        j_table["forfeited"] = table.forfeited;
-        j_table["rejected"] = table.rejected;
-        j_table["defunct"] = table.defunct;
+        j_table["ongoing"] = table.status & table.STATUS_ONGOING;
+        j_table["finished"] = table.status & table.STATUS_FINISHED;
+        j_table["forfeited"] = table.status & table.STATUS_FORFEITED;
+        j_table["rejected"] = table.status & table.STATUS_REJECTED;
+        j_table["defunct"] = table.status & table.STATUS_DEFUNCT;
         j_table["parent_index"] = table.parent_index;
 
         if (table.sequence.size())

@@ -181,15 +181,15 @@ void NegotiationPanel::update_negotiation_graph_visuals(const NegotiationStatusM
 
     //status text
     text.append("Ongoing? ");
-    text.append(table.ongoing ? "YES\n" : "NO\n");
+    text.append(table.status & table.STATUS_ONGOING ? "YES\n" : "NO\n");
     text.append("Finished? ");
-    text.append(table.finished ? "YES\n" : "NO\n");
+    text.append(table.status & table.STATUS_FINISHED ? "YES\n" : "NO\n");
     text.append("Forfeited? ");
-    text.append(table.forfeited ? "YES\n" : "NO\n");
+    text.append(table.status & table.STATUS_FORFEITED ? "YES\n" : "NO\n");
     text.append("Rejected? ");
-    text.append(table.rejected ? "YES\n" : "NO\n");
+    text.append(table.status & table.STATUS_REJECTED ? "YES\n" : "NO\n");
     text.append("Defunct? ");
-    text.append(table.defunct ? "YES\n" : "NO\n");
+    text.append(table.status & table.STATUS_DEFUNCT ? "YES\n" : "NO\n");
     {
       QString iter_count;
       iter_count.sprintf("Itineraries: %lu", table.proposals.size());
