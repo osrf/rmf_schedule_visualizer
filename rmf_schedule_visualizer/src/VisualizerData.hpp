@@ -19,6 +19,7 @@
 #ifndef RMF_SCHEDULE_VISUALIZER__SRC__VISUALIZERDATA_HPP
 #define RMF_SCHEDULE_VISUALIZER__SRC__VISUALIZERDATA_HPP
 
+#include "NegotiationStatusPublisher.hpp"
 #include <rmf_traffic_ros2/schedule/MirrorManager.hpp>
 
 #include <rmf_traffic/Trajectory.hpp>
@@ -70,6 +71,9 @@ public:
 
   std::vector<std::vector<uint64_t>> get_server_conflicts() const;
 
+  std::vector<Element> get_negotiation_trajectories(
+    uint64_t conflict_version, const std::vector<uint64_t>& sequence);
+
   rmf_traffic::Time now();
 
   std::mutex& get_mutex();
@@ -109,6 +113,8 @@ public:
   std::unordered_map<
     rmf_traffic::schedule::Version,
     std::vector<rmf_traffic::schedule::ParticipantId>> _conflicts;
+
+  NegotiationStatusPublisher _negotiation_status_data;
 };
 
 } // namespace rmf_schedule_visualizer

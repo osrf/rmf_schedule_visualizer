@@ -16,6 +16,7 @@
 */
 
 #include "VisualizerData.hpp"
+#include "NegotiationStatusPublisher.hpp"
 
 #include <rmf_traffic_ros2/StandardNames.hpp>
 #include <rmf_traffic_ros2/Time.hpp>
@@ -102,14 +103,17 @@ void VisualizerDataNode::start(Data _data)
       debug_cb(std::move(msg));
     });
 
-  _negotiation_status_sub = this->create_subscription<NegotiationStatus>(
+  rmf_schedule_visualizer::NegotiationStatusPublisher::start(
+    *this, _negotiation_status_data);
+
+  /*_negotiation_status_sub = this->create_subscription<NegotiationStatus>(
     rmf_traffic_ros2::NegotiationStatusTopicName,
     rclcpp::ServicesQoS(),
     [&](NegotiationStatus::UniquePtr msg)
     {
       std::lock_guard<std::mutex> guard(_negotiation_status_mutex);
       _negotiation_status_msg = *msg;
-    });
+    });*/
 }
 
 void VisualizerDataNode::debug_cb(std_msgs::msg::String::UniquePtr msg)
@@ -229,5 +233,46 @@ std::vector<std::vector<
 
   return conflicts;
 }
+
+std::vector<Element> VisualizerDataNode::get_negotiation_trajectories(
+  uint64_t conflict_version, const std::vector<uint64_t>& sequence)
+{
+  std::vector<Element> trajectory_elements;
+
+  auto table_view = _negotiation_status_data._negotiation->table_view(conflict_version, sequence);
+  if (!table_view)
+  {
+    RCLCPP_WARN(this->get_logger(), "table_view for conflict %d not found!", conflict_version);
+    return trajectory_elements;
+  }
+  
+  rmf_traffic::RouteId route_id = 0;
+  auto add_route = [&](rmf_traffic::ConstRoutePtr route_ptr,
+    rmf_traffic::schedule::ParticipantId id)
+  {
+    auto& route = *(route_ptr);
+    //@todo: each itinerary has a route with a map. Figure out how to handle in dashboard
+    //route.map;
+    Element e { id, route_id, route, *table_view->get_description(id) };
+    trajectory_elements.push_back(e);
+    ++route_id;
+  };
+
+  auto itin = table_view->submission();
+  if (itin)
+  {
+    auto& routes = *itin;
+    for (auto route_ptr : routes)
+      add_route(route_ptr, table_view->participant_id());
+  }
+
+  for (auto proposal : table_view->base_proposals())
+  {
+    for (auto itin : proposal.itinerary)
+      add_route(itin, proposal.participant);
+  }
+  return trajectory_elements;
+}
+
 
 } // namespace rmf_schedule_visualizer

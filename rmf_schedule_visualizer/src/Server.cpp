@@ -18,6 +18,7 @@
 #include "Server.hpp"
 
 #include <rmf_traffic/Motion.hpp>
+#include <rmf_traffic/geometry/Circle.hpp>
 
 namespace rmf_schedule_visualizer {
 
@@ -149,7 +150,8 @@ bool Server::parse_request(server::message_ptr msg, std::string& response)
       auto elements = _visualizer_data_node.get_elements(request_param);
 
       bool trim = j_param["trim"];
-      response = parse_trajectories(elements, trim, request_param);
+      response = parse_trajectories("trajectory", 
+        _visualizer_data_node.get_server_conflicts(), elements, trim, request_param);
 
       return true;
 
@@ -166,59 +168,24 @@ bool Server::parse_request(server::message_ptr msg, std::string& response)
       return true;
     }
 
-    else if (j["request"] == "negotiation_status")
+    else if (j["request"] == "negotiation_trajectory")
     {
-      json j_res = _j_res;
-      j_res["response"] = "negotiation_status";
+      RCLCPP_INFO(_visualizer_data_node.get_logger(), "========== RECV NEGOTIATION_STATUS TRAJ REQUEST ===========");
+
+      uint64_t conflict_version = j["param"]["conflict_version"];
+      std::vector<uint64_t> sequence = j["param"]["sequence"];
+
+      RCLCPP_INFO(_visualizer_data_node.get_logger(), "Version: %d", conflict_version);
       
-      std::lock_guard<std::mutex> guard(_visualizer_data_node._negotiation_status_mutex);
+      auto trajectory_elements = _visualizer_data_node.get_negotiation_trajectories(conflict_version, sequence);
+      const auto now = std::chrono::steady_clock::now();
 
-      auto& status_msg = _visualizer_data_node._negotiation_status_msg;
-      json j_status_msg;
+      RequestParam req;
+      req.start_time = now;
+      req.finish_time = now + 3min;
 
-      j_status_msg["conflict_version"] = status_msg.conflict_version;
-      j_status_msg["participants"] = status_msg.participants;
-
-      json j_tables;
-      for (auto& table : status_msg.tables)
-      {
-        json j_table;
-        j_table["proposals_id"] = table.proposals_id;
-        j_table["ongoing"] = table.status & table.STATUS_ONGOING;
-        j_table["finished"] = table.status & table.STATUS_FINISHED;
-        j_table["forfeited"] = table.status & table.STATUS_FORFEITED;
-        j_table["rejected"] = table.status & table.STATUS_REJECTED;
-        j_table["defunct"] = table.status & table.STATUS_DEFUNCT;
-        j_table["parent_index"] = table.parent_index;
-
-        if (table.sequence.size())
-        {
-          uint64_t participant_for = table.sequence.back();
-          j_table["for_participant"] = participant_for;
-          auto accommodating = table.sequence;
-          accommodating.pop_back();
-          j_table["accommodating"] = accommodating;
-        }
-        
-        //@todo: render/draw your graph on romi dashboard first
-        //search in this file 'add_segment' for sending trajectories via websocket
-        for (auto& itin : table.proposals)
-        {
-          json j_itin_array;
-          for (auto& route : itin.routes)
-          {
-            json j_route;
-            //j_route.push_back(route.trajectory);
-          }
-        }
-        j_tables.push_back(j_table);
-      }
-      j_status_msg["tables"] = j_tables;
-
-      j_res["negotiation_status"] = j_status_msg;
-
-      response = j_res.dump();
-      std::cout << response << std::endl;
+      response = parse_trajectories("negotiation_trajectory", { { conflict_version } }, trajectory_elements, false, req);
+      RCLCPP_INFO(_visualizer_data_node.get_logger(), response);
       return true;
     }
 
@@ -239,14 +206,16 @@ bool Server::parse_request(server::message_ptr msg, std::string& response)
 }
 
 std::string Server::parse_trajectories(
+  const std::string& response_type,
+  const std::vector<std::vector<uint64_t>>& conflicts,
   const std::vector<Element>& elements,
   const bool trim,
   const RequestParam& request_param)
 {
   std::string response;
   auto j_res = _j_res;
-  j_res["response"] = "trajectory";
-  j_res["conflicts"] = _visualizer_data_node.get_server_conflicts();
+  j_res["response"] = response_type;
+  j_res["conflicts"] = conflicts;
 
   try
   {
@@ -323,9 +292,7 @@ std::string Server::parse_trajectories(
             it->velocity());
         }
       }
-
       j_res["values"].push_back(j_traj);
-
     }
   }
 
