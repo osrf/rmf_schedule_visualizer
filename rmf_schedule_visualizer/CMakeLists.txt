@@ -36,7 +36,11 @@ endif()
 #===============================================================================
 #file(GLOB_RECURSE visualizer_srcs "src/*.cpp")
 #add_executable(schedule_visualizer ${visualizer_srcs})
-add_executable(schedule_visualizer src/Server.cpp src/VisualizerData.cpp src/main.cpp)
+add_executable(schedule_visualizer 
+  src/Server.cpp
+  src/VisualizerData.cpp
+  src/NegotiationStatusPublisher.cpp
+  src/main.cpp)
 
 target_link_libraries(schedule_visualizer
   PUBLIC
@@ -58,7 +62,7 @@ target_include_directories(schedule_visualizer
     ${WEBSOCKETPP_INCLUDE_DIR}
 )
 #===============================================================================
-add_executable(rviz2 src/VisualizerData.cpp src/main_rviz.cpp)
+add_executable(rviz2 src/VisualizerData.cpp src/NegotiationStatusPublisher.cpp src/main_rviz.cpp)
 
 target_link_libraries(rviz2
   PUBLIC
