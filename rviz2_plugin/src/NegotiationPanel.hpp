@@ -80,7 +80,7 @@ protected:
   rclcpp::TimerBase::SharedPtr _timer;
 
   uint prev_table_select = NON_EXISTENT;
-  using NegotiationStatusTable = rmf_traffic_msgs::msg::NegotiationStatusTable;
+  using NegotiationStatus = rmf_traffic_msgs::msg::NegotiationStatus;
 
 
 
