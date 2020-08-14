@@ -22,6 +22,7 @@
 
 #include <rviz_common/panel.hpp>
 #include <rmf_traffic_msgs/msg/negotiation_status.hpp>
+#include <rmf_traffic_msgs/msg/itinerary.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <thread>
 #include <mutex>

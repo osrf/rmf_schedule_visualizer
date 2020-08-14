@@ -48,8 +48,6 @@ NegotiationPanel::NegotiationPanel(QWidget* parent)
     rmf_traffic_ros2::NegotiationStatusTopicName, 
     rclcpp::SystemDefaultsQoS(),
     [this](NegotiationStatusMsg::SharedPtr msg) {
-      RCLCPP_WARN(rclcpp::get_logger("asdsad"), "RECVED MSG");
-
       {
         std::unique_lock<std::mutex> guard(_lock);
         _status_msg = *msg;
@@ -98,31 +96,6 @@ NegotiationPanel::NegotiationPanel(QWidget* parent)
   layout->addStretch();
   setLayout(layout);
 
-  
-#if 0 //quick test code
-  {
-    NegotiationStatusMsg msg;
-    msg.participants = { 1, 2 };
-
-    NegotiationStatusTable table;
-    table.parent_index = -1;
-    table.sequence = { 1, 2 };
-    msg.tables.push_back(table);
-
-    NegotiationStatusTable table2;
-    table2.parent_index = -1;
-    table2.sequence = { 2, 1 };
-    msg.tables.push_back(table2);
-
-    NegotiationStatusTable table3;
-    table3.parent_index = 1;
-    table3.depth = 1;
-    table3.sequence = { 2, 1 };
-    msg.tables.push_back(table3);
-    _status_msg = msg;
-    update_negotiation_graph_visuals(msg);
-  }
-#endif
   //@todo: when we unify plugins we should add nodes to an executor
   _thread = std::thread([&]()
     {
@@ -155,7 +128,7 @@ void NegotiationPanel::update_negotiation_graph_visuals(const NegotiationStatusM
     //left alignment because aligning center via boundingRect is wrong, qt :(
     textitem->moveBy(x_offset, -80);
   }
-
+#if 0
   int index = 0;
   int prev_depth = 0;
   uint32_t first_index_in_current_row = 0;
@@ -173,7 +146,7 @@ void NegotiationPanel::update_negotiation_graph_visuals(const NegotiationStatusM
     for (uint i=0; i<(table.sequence.size() - 1); ++i)
     {
       QString seq_text;
-      seq_text.sprintf("%lu ", table.sequence[i]);
+      seq_text.sprintf("%d ", table.sequence[i]);
 
       text.append(seq_text);
     }
@@ -245,7 +218,7 @@ void NegotiationPanel::update_negotiation_graph_visuals(const NegotiationStatusM
 
     ++index;
   }
-
+#endif
   _scene->update();
 }
 
@@ -268,15 +241,16 @@ void NegotiationPanel::timer_publish_callback()
       auto rect = (QGraphicsRectItem*)item;
       QVariant variant = rect->data(0);
       int index = variant.toInt();
-
-      auto& tables = _status_msg.tables;
+#if 0
+      auto& tables = _status_msg.tables;if
       if (index >= (int)tables.size())
           continue;
+#endif
       return index;
     }
     return NON_EXISTENT;
   };
-
+#if 0
   int table_index = get_selected_table();
   if (table_index == NON_EXISTENT || table_index >= (int)_status_msg.tables.size())
   {
@@ -297,7 +271,7 @@ void NegotiationPanel::timer_publish_callback()
     for (auto itin : table.proposals)
       _itineraries.push_back(itin);
   }
-
+#endif
   if (_itineraries.empty())
     return; //dont publish
 
