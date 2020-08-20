@@ -19,8 +19,9 @@
 #ifndef RMF_SCHEDULE_VISUALIZER__SRC__VISUALIZERDATA_HPP
 #define RMF_SCHEDULE_VISUALIZER__SRC__VISUALIZERDATA_HPP
 
-#include "NegotiationStatusPublisher.hpp"
 #include <rmf_traffic_ros2/schedule/MirrorManager.hpp>
+#include <rmf_traffic_ros2/schedule/Negotiation.hpp>
+#include <rmf_traffic_ros2/schedule/Writer.hpp>
 
 #include <rmf_traffic/Trajectory.hpp>
 #include <rmf_traffic/schedule/Viewer.hpp>
@@ -28,7 +29,6 @@
 
 #include <rmf_traffic_msgs/msg/negotiation_notice.hpp>
 #include <rmf_traffic_msgs/msg/negotiation_conclusion.hpp>
-#include <rmf_traffic_msgs/msg/negotiation_status.hpp>
 
 #include <rmf_schedule_visualizer/CommonData.hpp>
 
@@ -51,7 +51,7 @@ public:
   using Element = rmf_traffic::schedule::Viewer::View::Element;
   using ConflictNotice = rmf_traffic_msgs::msg::NegotiationNotice;
   using ConflictConclusion = rmf_traffic_msgs::msg::NegotiationConclusion;
-  using NegotiationStatus = rmf_traffic_msgs::msg::NegotiationStatus;
+
   /// Builder function which returns a pointer to VisualizerNode when
   /// the Mirror Manager is readied and websocket is started.
   /// A nullptr is returned if initialization fails.
@@ -102,10 +102,6 @@ public:
 
   void start(Data data);
 
-  std::mutex _negotiation_status_mutex;
-  NegotiationStatus _negotiation_status_msg;
-  rclcpp::Subscription<NegotiationStatus>::SharedPtr _negotiation_status_sub;
-
   std::vector<rmf_traffic::Trajectory> _trajectories;
   std::string _node_name;
   std::unique_ptr<Data> data;
@@ -114,7 +110,9 @@ public:
     rmf_traffic::schedule::Version,
     std::vector<rmf_traffic::schedule::ParticipantId>> _conflicts;
 
-  NegotiationStatusPublisher _negotiation_status_data;
+  rmf_traffic_ros2::schedule::WriterPtr _writer;
+  rmf_utils::optional<rmf_traffic_ros2::schedule::MirrorManager> _mirror_mgr;
+  rmf_utils::optional<rmf_traffic_ros2::schedule::Negotiation> _negotiation;
 };
 
 } // namespace rmf_schedule_visualizer

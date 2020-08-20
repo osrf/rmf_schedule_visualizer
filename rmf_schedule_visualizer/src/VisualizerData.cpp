@@ -16,7 +16,6 @@
 */
 
 #include "VisualizerData.hpp"
-#include "NegotiationStatusPublisher.hpp"
 
 #include <rmf_traffic_ros2/StandardNames.hpp>
 #include <rmf_traffic_ros2/Time.hpp>
@@ -103,17 +102,37 @@ void VisualizerDataNode::start(Data _data)
       debug_cb(std::move(msg));
     });
 
-  rmf_schedule_visualizer::NegotiationStatusPublisher::start(
-    *this, _negotiation_status_data);
+  // retrieve/construct mirrors, snapshots and negotiation object
+  { 
+    auto mirror_future = rmf_traffic_ros2::schedule::make_mirror(
+      *this, rmf_traffic::schedule::query_all());
 
-  /*_negotiation_status_sub = this->create_subscription<NegotiationStatus>(
-    rmf_traffic_ros2::NegotiationStatusTopicName,
-    rclcpp::ServicesQoS(),
-    [&](NegotiationStatus::UniquePtr msg)
+    _writer = rmf_traffic_ros2::schedule::Writer::make(*this);
+
+    using namespace std::chrono_literals;
+
+    bool ready = false;
+    const auto stop_time = std::chrono::steady_clock::now() + 10s;
+    while (rclcpp::ok() && std::chrono::steady_clock::now() < stop_time)
     {
-      std::lock_guard<std::mutex> guard(_negotiation_status_mutex);
-      _negotiation_status_msg = *msg;
-    });*/
+      rclcpp::spin_some(this->get_node_base_interface());
+
+      bool writer_ready = _writer->ready();
+      bool mirror_ready = (mirror_future.wait_for(0s) == std::future_status::ready);
+
+      if (writer_ready && mirror_ready)
+      {
+        _mirror_mgr = mirror_future.get();
+        _negotiation = rmf_traffic_ros2::schedule::Negotiation(
+          *this, _mirror_mgr->snapshot_handle());
+        ready = true;
+        break;
+      }
+    }
+
+    if (!ready)
+      RCLCPP_ERROR(this->get_logger(), "Unable to get mirrors/snaphots!");
+  }
 }
 
 void VisualizerDataNode::debug_cb(std_msgs::msg::String::UniquePtr msg)
@@ -239,7 +258,7 @@ std::vector<Element> VisualizerDataNode::get_negotiation_trajectories(
 {
   std::vector<Element> trajectory_elements;
 
-  auto table_view = _negotiation_status_data._negotiation->table_view(conflict_version, sequence);
+  auto table_view = _negotiation->table_view(conflict_version, sequence);
   if (!table_view)
   {
     RCLCPP_WARN(this->get_logger(), "table_view for conflict %d not found!", conflict_version);

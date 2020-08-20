@@ -16,7 +16,6 @@
 */
 
 #include "VisualizerData.hpp"
-#include "NegotiationStatusPublisher.hpp"
 #include "Server.hpp"
 
 #include <rclcpp/rclcpp.hpp>
@@ -74,7 +73,7 @@ int main(int argc, char* argv[])
   const auto visualizer_data_node =
     rmf_schedule_visualizer::VisualizerDataNode::make(node_name);
 
-  auto& negotiation = visualizer_data_node->_negotiation_status_data._negotiation;
+  auto& negotiation = visualizer_data_node->_negotiation;
   negotiation->set_retained_history_count(retained_history_count);
 
   if (!visualizer_data_node)

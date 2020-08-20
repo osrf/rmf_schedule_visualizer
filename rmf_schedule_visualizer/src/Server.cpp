@@ -59,6 +59,54 @@ Server::Server(uint16_t port, VisualizerDataNode& visualizer_data_node)
   _server.set_close_handler(bind(&Server::on_close, this, _1));
   _server.set_message_handler(bind(&Server::on_message, this, _1, _2));
   _is_initialized = true;
+
+  //set up callbacks for negotiations
+  auto status_update_cb = [&](
+    uint64_t conflict_version,
+    rmf_traffic::schedule::Negotiation::Table::ViewerPtr table_view)
+  {
+    RCLCPP_WARN(_visualizer_data_node.get_logger(),
+      "======== conflict callback %d! ==========",
+      conflict_version);
+    
+    nlohmann::json conflict_json;
+    conflict_json["type"] = "negotiation_status_conclusion";
+    conflict_json["conflict_version"] = conflict_version;
+    conflict_json["participant_id"] = table_view->participant_id();
+    conflict_json["participant_name"] =
+      table_view->get_description(table_view->participant_id())->name();
+    conflict_json["defunct"] = table_view->defunct();
+    conflict_json["rejected"] = table_view->rejected();
+    conflict_json["forfeited"] = table_view->forfeited();
+
+    auto versioned_sequence = table_view->sequence();
+    for (auto versionedkey : versioned_sequence)
+      conflict_json["sequence"].push_back(versionedkey.participant);
+    
+    std::string conflict_str = conflict_json.dump();
+    for (auto connection : _connections)
+      _server.send(connection, conflict_str, websocketpp::frame::opcode::text);
+  };
+  _visualizer_data_node._negotiation->on_status_update(status_update_cb);
+
+  auto conclusion_cb = [&](
+    uint64_t conflict_version, bool resolved)
+  {
+    RCLCPP_WARN(_visualizer_data_node.get_logger(), 
+      "======== conflict concluded: %llu resolved: %d ==========",
+      conflict_version, resolved ? 1 : 0);
+
+    nlohmann::json json_msg;
+    json_msg["type"] = "negotiation_status_conclusion";
+    json_msg["conflict_version"] = conflict_version;
+    json_msg["resolved"] = resolved;
+    
+    std::string json_str = json_msg.dump();
+    for (auto connection : _connections)
+      _server.send(connection, json_str, websocketpp::frame::opcode::text);
+  };
+  _visualizer_data_node._negotiation->on_conclusion(conclusion_cb);
+
 }
 
 void Server::on_open(connection_hdl hdl)
