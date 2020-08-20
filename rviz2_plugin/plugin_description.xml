@@ -20,11 +20,4 @@
       A panel widget allowing users to send door requests and visualize states.
     </description>
   </class>
-  <class name="rviz2_plugin/NegotiationPanel"
-         type="rviz2_plugin::NegotiationPanel"
-         base_class_type="rviz_common::Panel">
-    <description>
-      A panel widget detailing the status of negotiations.
-    </description>
-  </class>
 </library>
