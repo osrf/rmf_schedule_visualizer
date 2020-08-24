@@ -254,7 +254,7 @@ std::vector<std::vector<
 }
 
 std::vector<Element> VisualizerDataNode::get_negotiation_trajectories(
-  uint64_t conflict_version, const std::vector<uint64_t>& sequence)
+  uint64_t conflict_version, const std::vector<uint64_t>& sequence) const
 {
   std::vector<Element> trajectory_elements;
 
@@ -286,8 +286,8 @@ std::vector<Element> VisualizerDataNode::get_negotiation_trajectories(
 
   for (auto proposal : table_view->base_proposals())
   {
-    for (auto itin : proposal.itinerary)
-      add_route(itin, proposal.participant);
+    for (auto route : proposal.itinerary)
+      add_route(route, proposal.participant);
   }
   return trajectory_elements;
 }

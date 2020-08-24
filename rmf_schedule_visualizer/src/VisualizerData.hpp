@@ -51,7 +51,6 @@ public:
   using Element = rmf_traffic::schedule::Viewer::View::Element;
   using ConflictNotice = rmf_traffic_msgs::msg::NegotiationNotice;
   using ConflictConclusion = rmf_traffic_msgs::msg::NegotiationConclusion;
-
   /// Builder function which returns a pointer to VisualizerNode when
   /// the Mirror Manager is readied and websocket is started.
   /// A nullptr is returned if initialization fails.
@@ -72,7 +71,7 @@ public:
   std::vector<std::vector<uint64_t>> get_server_conflicts() const;
 
   std::vector<Element> get_negotiation_trajectories(
-    uint64_t conflict_version, const std::vector<uint64_t>& sequence);
+    uint64_t conflict_version, const std::vector<uint64_t>& sequence) const;
 
   rmf_traffic::Time now();
 

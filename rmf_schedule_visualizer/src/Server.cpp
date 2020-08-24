@@ -18,7 +18,6 @@
 #include "Server.hpp"
 
 #include <rmf_traffic/Motion.hpp>
-#include <rmf_traffic/geometry/Circle.hpp>
 
 namespace rmf_schedule_visualizer {
 
@@ -65,7 +64,7 @@ Server::Server(uint16_t port, VisualizerDataNode& visualizer_data_node)
     uint64_t conflict_version,
     rmf_traffic::schedule::Negotiation::Table::ViewerPtr table_view)
   {
-    RCLCPP_WARN(_visualizer_data_node.get_logger(),
+    RCLCPP_INFO(_visualizer_data_node.get_logger(),
       "======== conflict callback %d! ==========",
       conflict_version);
     
@@ -92,7 +91,7 @@ Server::Server(uint16_t port, VisualizerDataNode& visualizer_data_node)
   auto conclusion_cb = [&](
     uint64_t conflict_version, bool resolved)
   {
-    RCLCPP_WARN(_visualizer_data_node.get_logger(), 
+    RCLCPP_INFO(_visualizer_data_node.get_logger(), 
       "======== conflict concluded: %llu resolved: %d ==========",
       conflict_version, resolved ? 1 : 0);
 
@@ -218,13 +217,11 @@ bool Server::parse_request(server::message_ptr msg, std::string& response)
 
     else if (j["request"] == "negotiation_trajectory")
     {
-      RCLCPP_INFO(_visualizer_data_node.get_logger(), "========== RECV NEGOTIATION_STATUS TRAJ REQUEST ===========");
+      RCLCPP_INFO(_visualizer_data_node.get_logger(), "Received Negotiation Trajectory request");
 
       uint64_t conflict_version = j["param"]["conflict_version"];
       std::vector<uint64_t> sequence = j["param"]["sequence"];
 
-      RCLCPP_INFO(_visualizer_data_node.get_logger(), "Version: %d", conflict_version);
-      
       auto trajectory_elements = _visualizer_data_node.get_negotiation_trajectories(conflict_version, sequence);
       const auto now = std::chrono::steady_clock::now();
 
