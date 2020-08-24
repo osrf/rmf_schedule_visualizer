@@ -63,47 +63,48 @@ Server::Server(uint16_t port, VisualizerDataNode& visualizer_data_node)
   auto status_update_cb = [&](
     uint64_t conflict_version,
     rmf_traffic::schedule::Negotiation::Table::ViewerPtr table_view)
-  {
-    RCLCPP_INFO(_visualizer_data_node.get_logger(),
-      "======== conflict callback %d! ==========",
-      conflict_version);
-    
-    nlohmann::json conflict_json;
-    conflict_json["type"] = "negotiation_status";
-    conflict_json["conflict_version"] = conflict_version;
-    conflict_json["participant_id"] = table_view->participant_id();
-    conflict_json["participant_name"] =
-      table_view->get_description(table_view->participant_id())->name();
-    conflict_json["defunct"] = table_view->defunct();
-    conflict_json["rejected"] = table_view->rejected();
-    conflict_json["forfeited"] = table_view->forfeited();
+    {
+      RCLCPP_INFO(_visualizer_data_node.get_logger(),
+        "======== conflict callback version: %llu! ==========",
+        conflict_version);
 
-    auto versioned_sequence = table_view->sequence();
-    for (auto versionedkey : versioned_sequence)
-      conflict_json["sequence"].push_back(versionedkey.participant);
-    
-    std::string conflict_str = conflict_json.dump();
-    for (auto connection : _connections)
-      _server.send(connection, conflict_str, websocketpp::frame::opcode::text);
-  };
+      nlohmann::json conflict_json;
+      conflict_json["type"] = "negotiation_status";
+      conflict_json["conflict_version"] = conflict_version;
+      conflict_json["participant_id"] = table_view->participant_id();
+      conflict_json["participant_name"] =
+        table_view->get_description(table_view->participant_id())->name();
+      conflict_json["defunct"] = table_view->defunct();
+      conflict_json["rejected"] = table_view->rejected();
+      conflict_json["forfeited"] = table_view->forfeited();
+
+      auto versioned_sequence = table_view->sequence();
+      for (auto versionedkey : versioned_sequence)
+        conflict_json["sequence"].push_back(versionedkey.participant);
+
+      std::string conflict_str = conflict_json.dump();
+      for (auto connection : _connections)
+        _server.send(connection, conflict_str,
+          websocketpp::frame::opcode::text);
+    };
   _visualizer_data_node._negotiation->on_status_update(status_update_cb);
 
   auto conclusion_cb = [&](
     uint64_t conflict_version, bool resolved)
-  {
-    RCLCPP_INFO(_visualizer_data_node.get_logger(), 
-      "======== conflict concluded: %llu resolved: %d ==========",
-      conflict_version, resolved ? 1 : 0);
+    {
+      RCLCPP_INFO(_visualizer_data_node.get_logger(),
+        "======== conflict concluded: %llu resolved: %d ==========",
+        conflict_version, resolved ? 1 : 0);
 
-    nlohmann::json json_msg;
-    json_msg["type"] = "negotiation_status_conclusion";
-    json_msg["conflict_version"] = conflict_version;
-    json_msg["resolved"] = resolved;
-    
-    std::string json_str = json_msg.dump();
-    for (auto connection : _connections)
-      _server.send(connection, json_str, websocketpp::frame::opcode::text);
-  };
+      nlohmann::json json_msg;
+      json_msg["type"] = "negotiation_status_conclusion";
+      json_msg["conflict_version"] = conflict_version;
+      json_msg["resolved"] = resolved;
+
+      std::string json_str = json_msg.dump();
+      for (auto connection : _connections)
+        _server.send(connection, json_str, websocketpp::frame::opcode::text);
+    };
   _visualizer_data_node._negotiation->on_conclusion(conclusion_cb);
 
 }
@@ -197,8 +198,9 @@ bool Server::parse_request(server::message_ptr msg, std::string& response)
       auto elements = _visualizer_data_node.get_elements(request_param);
 
       bool trim = j_param["trim"];
-      response = parse_trajectories("trajectory", 
-        _visualizer_data_node.get_server_conflicts(), elements, trim, request_param);
+      response = parse_trajectories("trajectory",
+          _visualizer_data_node.get_server_conflicts(), elements, trim,
+          request_param);
 
       return true;
 
@@ -217,20 +219,25 @@ bool Server::parse_request(server::message_ptr msg, std::string& response)
 
     else if (j["request"] == "negotiation_trajectory")
     {
-      RCLCPP_INFO(_visualizer_data_node.get_logger(), "Received Negotiation Trajectory request");
+      RCLCPP_INFO(_visualizer_data_node.get_logger(),
+        "Received Negotiation Trajectory request");
 
       uint64_t conflict_version = j["param"]["conflict_version"];
       std::vector<uint64_t> sequence = j["param"]["sequence"];
 
-      auto trajectory_elements = _visualizer_data_node.get_negotiation_trajectories(conflict_version, sequence);
+      auto trajectory_elements =
+        _visualizer_data_node.get_negotiation_trajectories(conflict_version,
+          sequence);
       const auto now = std::chrono::steady_clock::now();
 
       RequestParam req;
       req.start_time = now;
       req.finish_time = now + 3min;
 
-      response = parse_trajectories("negotiation_trajectory", { { conflict_version } }, trajectory_elements, false, req);
-      RCLCPP_INFO(_visualizer_data_node.get_logger(), response);
+      response = parse_trajectories("negotiation_trajectory",
+          { { conflict_version } },
+          trajectory_elements, false, req);
+
       return true;
     }
 

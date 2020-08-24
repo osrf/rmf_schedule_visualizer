@@ -103,7 +103,7 @@ void VisualizerDataNode::start(Data _data)
     });
 
   // retrieve/construct mirrors, snapshots and negotiation object
-  { 
+  {
     auto mirror_future = rmf_traffic_ros2::schedule::make_mirror(
       *this, rmf_traffic::schedule::query_all());
 
@@ -118,7 +118,8 @@ void VisualizerDataNode::start(Data _data)
       rclcpp::spin_some(this->get_node_base_interface());
 
       bool writer_ready = _writer->ready();
-      bool mirror_ready = (mirror_future.wait_for(0s) == std::future_status::ready);
+      bool mirror_ready =
+        (mirror_future.wait_for(0s) == std::future_status::ready);
 
       if (writer_ready && mirror_ready)
       {
@@ -261,20 +262,22 @@ std::vector<Element> VisualizerDataNode::get_negotiation_trajectories(
   auto table_view = _negotiation->table_view(conflict_version, sequence);
   if (!table_view)
   {
-    RCLCPP_WARN(this->get_logger(), "table_view for conflict %d not found!", conflict_version);
+    RCLCPP_WARN(
+      this->get_logger(), "table_view for conflict %d not found!",
+      conflict_version);
     return trajectory_elements;
   }
-  
+
   rmf_traffic::RouteId route_id = 0;
   auto add_route = [&](rmf_traffic::ConstRoutePtr route_ptr,
-    rmf_traffic::schedule::ParticipantId id)
-  {
-    auto& route = *(route_ptr);
+      rmf_traffic::schedule::ParticipantId id)
+    {
+      auto& route = *(route_ptr);
 
-    Element e { id, route_id, route, *table_view->get_description(id) };
-    trajectory_elements.push_back(e);
-    ++route_id;
-  };
+      Element e { id, route_id, route, *table_view->get_description(id) };
+      trajectory_elements.push_back(e);
+      ++route_id;
+    };
 
   auto itin = table_view->submission();
   if (itin)
