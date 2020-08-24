@@ -270,8 +270,7 @@ std::vector<Element> VisualizerDataNode::get_negotiation_trajectories(
     rmf_traffic::schedule::ParticipantId id)
   {
     auto& route = *(route_ptr);
-    //@todo: each itinerary has a route with a map. Figure out how to handle in dashboard
-    //route.map;
+
     Element e { id, route_id, route, *table_view->get_description(id) };
     trajectory_elements.push_back(e);
     ++route_id;

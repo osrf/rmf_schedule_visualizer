@@ -70,7 +70,7 @@ Server::Server(uint16_t port, VisualizerDataNode& visualizer_data_node)
       conflict_version);
     
     nlohmann::json conflict_json;
-    conflict_json["type"] = "negotiation_status_conclusion";
+    conflict_json["type"] = "negotiation_status";
     conflict_json["conflict_version"] = conflict_version;
     conflict_json["participant_id"] = table_view->participant_id();
     conflict_json["participant_name"] =
