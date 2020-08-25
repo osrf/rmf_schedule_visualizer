@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
 
   std::string retained_history_count_str;
   uint retained_history_count = 0;
-  if (get_arg(args, "-history", retained_history_count_str,
+  if (get_arg(args, "--history", retained_history_count_str,
     "retained history count", false))
   {
     std::stringstream ss;
