@@ -104,9 +104,6 @@ void VisualizerDataNode::start(Data _data)
 
   // retrieve/construct mirrors, snapshots and negotiation object
   {
-    auto mirror_future = rmf_traffic_ros2::schedule::make_mirror(
-      *this, rmf_traffic::schedule::query_all());
-
     _writer = rmf_traffic_ros2::schedule::Writer::make(*this);
 
     using namespace std::chrono_literals;
@@ -118,14 +115,11 @@ void VisualizerDataNode::start(Data _data)
       rclcpp::spin_some(this->get_node_base_interface());
 
       bool writer_ready = _writer->ready();
-      bool mirror_ready =
-        (mirror_future.wait_for(0s) == std::future_status::ready);
 
-      if (writer_ready && mirror_ready)
+      if (writer_ready)
       {
-        _mirror_mgr = mirror_future.get();
         _negotiation = rmf_traffic_ros2::schedule::Negotiation(
-          *this, _mirror_mgr->snapshot_handle());
+          *this, data->mirror.snapshot_handle());
         ready = true;
         break;
       }

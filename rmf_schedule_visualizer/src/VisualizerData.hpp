@@ -110,7 +110,6 @@ public:
     std::vector<rmf_traffic::schedule::ParticipantId>> _conflicts;
 
   rmf_traffic_ros2::schedule::WriterPtr _writer;
-  rmf_utils::optional<rmf_traffic_ros2::schedule::MirrorManager> _mirror_mgr;
   rmf_utils::optional<rmf_traffic_ros2::schedule::Negotiation> _negotiation;
 };
 
