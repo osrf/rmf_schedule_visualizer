@@ -21,7 +21,6 @@
 
 #include <rmf_traffic_ros2/schedule/MirrorManager.hpp>
 #include <rmf_traffic_ros2/schedule/Negotiation.hpp>
-#include <rmf_traffic_ros2/schedule/Writer.hpp>
 
 #include <rmf_traffic/Trajectory.hpp>
 #include <rmf_traffic/schedule/Viewer.hpp>
@@ -109,7 +108,6 @@ public:
     rmf_traffic::schedule::Version,
     std::vector<rmf_traffic::schedule::ParticipantId>> _conflicts;
 
-  rmf_traffic_ros2::schedule::WriterPtr _writer;
   rmf_utils::optional<rmf_traffic_ros2::schedule::Negotiation> _negotiation;
 };
 

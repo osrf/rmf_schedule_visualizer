@@ -59,45 +59,49 @@ Server::Server(uint16_t port, VisualizerDataNode& visualizer_data_node)
   _server.set_message_handler(bind(&Server::on_message, this, _1, _2));
   _is_initialized = true;
 
+  // TODO: Eliminate undefined behavior from this implementation
+  // https://github.com/osrf/rmf_schedule_visualizer/pull/69#discussion_r476166450
+
   //set up callbacks for negotiations
-  auto status_update_cb = [&](
+  auto status_update_cb = [this](
     uint64_t conflict_version,
     rmf_traffic::schedule::Negotiation::Table::ViewerPtr table_view)
     {
-      RCLCPP_INFO(_visualizer_data_node.get_logger(),
+      RCLCPP_DEBUG(_visualizer_data_node.get_logger(),
         "======== conflict callback version: %llu! ==========",
         conflict_version);
 
-      nlohmann::json conflict_json;
-      conflict_json["type"] = "negotiation_status";
-      conflict_json["conflict_version"] = conflict_version;
-      conflict_json["participant_id"] = table_view->participant_id();
-      conflict_json["participant_name"] =
+      nlohmann::json negotiation_json;
+      negotiation_json["type"] = "negotiation_status";
+      negotiation_json["conflict_version"] = conflict_version;
+      negotiation_json["participant_id"] = table_view->participant_id();
+      negotiation_json["participant_name"] =
         table_view->get_description(table_view->participant_id())->name();
-      conflict_json["defunct"] = table_view->defunct();
-      conflict_json["rejected"] = table_view->rejected();
-      conflict_json["forfeited"] = table_view->forfeited();
+      negotiation_json["defunct"] = table_view->defunct();
+      negotiation_json["rejected"] = table_view->rejected();
+      negotiation_json["forfeited"] = table_view->forfeited();
 
       auto versioned_sequence = table_view->sequence();
       for (auto versionedkey : versioned_sequence)
-        conflict_json["sequence"].push_back(versionedkey.participant);
+        negotiation_json["sequence"].push_back(versionedkey.participant);
 
-      std::string conflict_str = conflict_json.dump();
+      std::string conflict_str = negotiation_json.dump();
       for (auto connection : _connections)
         _server.send(connection, conflict_str,
           websocketpp::frame::opcode::text);
     };
-  _visualizer_data_node._negotiation->on_status_update(status_update_cb);
+  _visualizer_data_node._negotiation->on_status_update(std::move(
+      status_update_cb));
 
-  auto conclusion_cb = [&](
+  auto conclusion_cb = [this](
     uint64_t conflict_version, bool resolved)
     {
-      RCLCPP_INFO(_visualizer_data_node.get_logger(),
+      RCLCPP_DEBUG(_visualizer_data_node.get_logger(),
         "======== conflict concluded: %llu resolved: %d ==========",
         conflict_version, resolved ? 1 : 0);
 
       nlohmann::json json_msg;
-      json_msg["type"] = "negotiation_status_conclusion";
+      json_msg["type"] = "negotiation_conclusion";
       json_msg["conflict_version"] = conflict_version;
       json_msg["resolved"] = resolved;
 
@@ -105,7 +109,7 @@ Server::Server(uint16_t port, VisualizerDataNode& visualizer_data_node)
       for (auto connection : _connections)
         _server.send(connection, json_str, websocketpp::frame::opcode::text);
     };
-  _visualizer_data_node._negotiation->on_conclusion(conclusion_cb);
+  _visualizer_data_node._negotiation->on_conclusion(std::move(conclusion_cb));
 
 }
 

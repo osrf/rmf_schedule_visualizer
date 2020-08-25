@@ -103,31 +103,8 @@ void VisualizerDataNode::start(Data _data)
     });
 
   // retrieve/construct mirrors, snapshots and negotiation object
-  {
-    _writer = rmf_traffic_ros2::schedule::Writer::make(*this);
-
-    using namespace std::chrono_literals;
-
-    bool ready = false;
-    const auto stop_time = std::chrono::steady_clock::now() + 10s;
-    while (rclcpp::ok() && std::chrono::steady_clock::now() < stop_time)
-    {
-      rclcpp::spin_some(this->get_node_base_interface());
-
-      bool writer_ready = _writer->ready();
-
-      if (writer_ready)
-      {
-        _negotiation = rmf_traffic_ros2::schedule::Negotiation(
-          *this, data->mirror.snapshot_handle());
-        ready = true;
-        break;
-      }
-    }
-
-    if (!ready)
-      RCLCPP_ERROR(this->get_logger(), "Unable to get mirrors/snaphots!");
-  }
+  _negotiation = rmf_traffic_ros2::schedule::Negotiation(
+    *this, data->mirror.snapshot_handle());
 }
 
 void VisualizerDataNode::debug_cb(std_msgs::msg::String::UniquePtr msg)
@@ -253,7 +230,7 @@ std::vector<Element> VisualizerDataNode::get_negotiation_trajectories(
 {
   std::vector<Element> trajectory_elements;
 
-  auto table_view = _negotiation->table_view(conflict_version, sequence);
+  const auto table_view = _negotiation->table_view(conflict_version, sequence);
   if (!table_view)
   {
     RCLCPP_WARN(
@@ -263,10 +240,11 @@ std::vector<Element> VisualizerDataNode::get_negotiation_trajectories(
   }
 
   rmf_traffic::RouteId route_id = 0;
-  auto add_route = [&](rmf_traffic::ConstRoutePtr route_ptr,
+  const auto add_route = [&route_id, &table_view, &trajectory_elements]
+      (rmf_traffic::ConstRoutePtr route_ptr,
       rmf_traffic::schedule::ParticipantId id)
     {
-      auto& route = *(route_ptr);
+      const auto& route = *(route_ptr);
 
       Element e { id, route_id, route, *table_view->get_description(id) };
       trajectory_elements.push_back(e);
@@ -276,7 +254,7 @@ std::vector<Element> VisualizerDataNode::get_negotiation_trajectories(
   auto itin = table_view->submission();
   if (itin)
   {
-    auto& routes = *itin;
+    const auto& routes = *itin;
     for (auto route_ptr : routes)
       add_route(route_ptr, table_view->participant_id());
   }
