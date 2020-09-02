@@ -49,7 +49,8 @@ void Server::run()
 }
 
 /// Constructor with port number and reference to visualizer_data_node
-Server::Server(uint16_t port, std::shared_ptr<VisualizerDataNode> visualizer_data_node)
+Server::Server(uint16_t port,
+  std::shared_ptr<VisualizerDataNode> visualizer_data_node)
 : _port(port),
   _visualizer_data_node(std::move(visualizer_data_node))
 {
@@ -116,13 +117,15 @@ Server::Server(uint16_t port, std::shared_ptr<VisualizerDataNode> visualizer_dat
 void Server::on_open(connection_hdl hdl)
 {
   _connections.insert(hdl);
-  RCLCPP_INFO(_visualizer_data_node->get_logger(), "Connected with a client");
+  RCLCPP_INFO(_visualizer_data_node->get_logger(),
+    "Connected with a client");
 }
 
 void Server::on_close(connection_hdl hdl)
 {
   _connections.erase(hdl);
-  RCLCPP_INFO(_visualizer_data_node->get_logger(), "Disconnected with a client");
+  RCLCPP_INFO(_visualizer_data_node->get_logger(),
+    "Disconnected with a client");
 
 }
 
@@ -148,7 +151,8 @@ void Server::on_message(connection_hdl hdl, server::message_ptr msg)
   }
   else
   {
-    RCLCPP_INFO(_visualizer_data_node->get_logger(), "Invalid request received");
+    RCLCPP_INFO(_visualizer_data_node->get_logger(),
+      "Invalid request received");
   }
 
 }

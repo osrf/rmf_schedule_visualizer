@@ -76,7 +76,8 @@ private:
   void run();
 
   /// Constructor with port number
-  Server(uint16_t port, std::shared_ptr<VisualizerDataNode> visualizer_data_node);
+  Server(uint16_t port,
+    std::shared_ptr<VisualizerDataNode> visualizer_data_node);
 
   void on_open(connection_hdl hdl);
 
