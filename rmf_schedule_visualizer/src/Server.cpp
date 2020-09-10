@@ -158,7 +158,8 @@ void Server::on_message(connection_hdl hdl, server::message_ptr msg)
 
 }
 
-bool Server::parse_request(connection_hdl hdl, server::message_ptr msg, std::string& response)
+bool Server::parse_request(connection_hdl hdl, server::message_ptr msg,
+  std::string& response)
 {
   using namespace std::chrono_literals;
 
