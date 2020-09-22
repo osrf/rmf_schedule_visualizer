@@ -22,7 +22,7 @@ jobs:
         mkdir -p ws_rmf/src
         cd ws_rmf/src
         git clone https://github.com/osrf/traffic_editor
-        git clone https://github.com/osrf/rmf_core -b foxy
+        git clone https://github.com/osrf/rmf_core
         
     - name: checkout
       uses: actions/checkout@v2
