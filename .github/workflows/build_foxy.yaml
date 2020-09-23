@@ -11,18 +11,17 @@ jobs:
       run: |
         sudo apt update
         sudo apt install -y wget
-        echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable bionic main" > sudo /etc/apt/sources.list.d/gazebo-stable.list
+        sudo sh -c 'echo "deb http://packages.osrfoundation.org/gazebo/ubuntu-stable `lsb_release -cs` main" > /etc/apt/sources.list.d/gazebo-stable.list'
         wget https://packages.osrfoundation.org/gazebo.key -O - | sudo apt-key add -
         sudo apt update
-        sudo apt install python3-shapely python3-yaml python3-requests libopencv-dev \
-        libignition-common3-dev libignition-plugin-dev libboost-system-dev libboost-date-time-dev libboost-regex-dev libboost-random-dev \
+        sudo apt install python3-shapely python3-yaml python3-requests \
         -y
     - name: setup
       run: |
         mkdir -p ws_rmf/src
         cd ws_rmf/src
         git clone https://github.com/osrf/traffic_editor
-        git clone https://github.com/osrf/rmf_core -b foxy
+        git clone https://github.com/osrf/rmf_core
         
     - name: checkout
       uses: actions/checkout@v2
