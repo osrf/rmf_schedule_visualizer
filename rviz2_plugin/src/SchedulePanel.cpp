@@ -86,21 +86,22 @@ SchedulePanel::SchedulePanel(QWidget* parent)
   _negotiation_view = new QTableWidget();
   _negotiation_view->setColumnCount(2);
   QStringList table_header;
-  table_header  << "Negotiation id" << "Participants";
+  table_header << "Negotiation id" << "Participants";
   _negotiation_view->setHorizontalHeaderLabels(table_header);
-  _negotiation_view->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+  _negotiation_view->horizontalHeader()->setSectionResizeMode(
+    QHeaderView::Stretch);
   _negotiation_view->setSelectionBehavior(QAbstractItemView::SelectRows);
 
   _nego_model = new NegotiationModel(_negotiation_view);
-  
+
   _cancel_button = new QPushButton;
   _cancel_button->setText("Cancel Negotiation");
-  
+
   QHBoxLayout* _negotiation_options = new QHBoxLayout;
   _negotiation_options->addStretch();
   _negotiation_options->addWidget(_cancel_button);
 
-  
+
   // Combine all layouts in vertival layput
   QVBoxLayout* layout = new QVBoxLayout;
   layout->addWidget(_negotiation_view);
@@ -123,8 +124,8 @@ SchedulePanel::SchedulePanel(QWidget* parent)
     SIGNAL(editingFinished()), this, SLOT(update_start_duration_max()));
   connect(_start_duration_editor,
     SIGNAL(editingFinished()), this, SLOT(update_start_duration_editor()));
-  connect(_cancel_button, 
-    SIGNAL(clicked()),this, SLOT(cancel_negotiation()));
+  connect(_cancel_button,
+    SIGNAL(clicked()), this, SLOT(cancel_negotiation()));
 
   _notice_sub = _node->create_subscription<NegotiationNotice>(
     "/rmf_traffic/negotiation_notice", rclcpp::SystemDefaultsQoS(),
@@ -139,7 +140,7 @@ SchedulePanel::SchedulePanel(QWidget* parent)
     {
       this->recieved_conclusion(*msg);
     });
-  
+
   // Updating text fields with default
   _topic_editor->setText(_param_topic);
   _map_name_editor->setText(_map_name);
@@ -161,7 +162,7 @@ void SchedulePanel::recieved_conclusion(const NegotiationConclusion& msg)
 
 void SchedulePanel::cancel_negotiation()
 {
-  if(!_negotiation_view->selectionModel()->hasSelection())
+  if (!_negotiation_view->selectionModel()->hasSelection())
   {
     RCLCPP_WARN(_node->get_logger(), "No selection made");
     return;
@@ -169,8 +170,8 @@ void SchedulePanel::cancel_negotiation()
 
   std::vector<uint64_t> conflicts;
   _nego_model->get_selected_id(conflicts);
-  
-  for(auto conflict: conflicts) 
+
+  for (auto conflict: conflicts)
   {
     NegotiationCancel cancel_msg;
     cancel_msg.conflict_version = conflict;

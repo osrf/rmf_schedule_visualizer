@@ -92,8 +92,8 @@ protected:
   QString _start_duration_max;
 
   QTableWidget* _negotiation_view;
-  
   int _start_duration_value;
+
 private:
   rclcpp::Publisher<RvizParamMsg>::SharedPtr _param_pub;
   rclcpp::Publisher<NegotiationCancel>::SharedPtr _cancel_pub;
