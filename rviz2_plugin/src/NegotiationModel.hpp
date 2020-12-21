@@ -18,9 +18,11 @@ public:
 private:
   QTableWidget* _negotiation_view;
   //TODO(arjo): Implement custom class to track state/
+  //Uses map to maintain sorted order.
   std::map<uint64_t, std::vector<uint64_t>> _model;
   void render();
-  uint64_t get_negotiation_id(int row_number);
+  uint64_t get_negotiation_id(std::size_t row_number);
+  QString render_participants(uint64_t conflict_version);
 };
 
 #endif

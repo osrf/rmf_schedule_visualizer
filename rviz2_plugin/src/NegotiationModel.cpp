@@ -44,19 +44,33 @@ void NegotiationModel::render()
     QTableWidgetItem* item = new QTableWidgetItem;
     item->setText(QString::number(_current_row->first));
     _negotiation_view->setItem(i, 0, item);
+
+    QTableWidgetItem* participants = new QTableWidgetItem;
+    participants->setText(render_participants(_current_row->first));
+    _negotiation_view->setItem(i, 1, participants);
     _current_row++;
   }
 }
 
-uint64_t NegotiationModel::get_negotiation_id(int n)
+uint64_t NegotiationModel::get_negotiation_id(std::size_t n)
 {
   auto _current_row = _model.begin();
   for(std::size_t i = 0; i < _model.size(); i++)
   {
     if(i == n) 
     {
-        return _current_row->first;
+      return _current_row->first;
     }
     _current_row++;
   }
+}
+
+QString NegotiationModel::render_participants(uint64_t conflict_version)
+{
+  QString res("");
+  for(auto& item: _model[conflict_version])
+  {
+    res += QString::number(item) + " ";
+  }
+  return res;
 }

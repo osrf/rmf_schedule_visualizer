@@ -89,7 +89,6 @@ SchedulePanel::SchedulePanel(QWidget* parent)
   table_header  << "Negotiation id" << "Participants";
   _negotiation_view->setHorizontalHeaderLabels(table_header);
   _negotiation_view->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
-  _negotiation_view->setRowCount(10);
   _negotiation_view->setSelectionBehavior(QAbstractItemView::SelectRows);
 
   _nego_model = new NegotiationModel(_negotiation_view);
