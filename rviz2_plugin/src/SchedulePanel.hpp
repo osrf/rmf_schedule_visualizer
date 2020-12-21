@@ -24,8 +24,10 @@
 
 #include <rmf_schedule_visualizer_msgs/msg/rviz_param.hpp>
 
-#include <rmf_traffic_msgs/msg/negotiation_notice.hpp>
+#include <rmf_traffic_msgs/msg/negotiation_cancel.hpp>
 #include <rmf_traffic_msgs/msg/negotiation_conclusion.hpp>
+#include <rmf_traffic_msgs/msg/negotiation_notice.hpp>
+
 
 #include <QPushButton>
 #include <QSlider>
@@ -39,6 +41,7 @@ namespace rviz2_plugin {
 using  RvizParamMsg = rmf_schedule_visualizer_msgs::msg::RvizParam;
 using  NegotiationNotice = rmf_traffic_msgs::msg::NegotiationNotice;
 using  NegotiationConclusion = rmf_traffic_msgs::msg::NegotiationConclusion;
+using  NegotiationCancel = rmf_traffic_msgs::msg::NegotiationCancel;
 
 class SchedulePanel : public rviz_common::Panel
 {
@@ -64,6 +67,7 @@ protected Q_SLOTS:
   void update_finish_duration();
   void update_start_duration_max();
   void update_start_duration_editor();
+  void cancel_negotiation();
 
 private:
   void recieved_notification(const NegotiationNotice&);
@@ -89,15 +93,15 @@ protected:
 
   QTableWidget* _negotiation_view;
   
-
   int _start_duration_value;
 private:
   rclcpp::Publisher<RvizParamMsg>::SharedPtr _param_pub;
+  rclcpp::Publisher<NegotiationCancel>::SharedPtr _cancel_pub;
   rclcpp::Subscription<NegotiationNotice>::SharedPtr _notice_sub;
+  rclcpp::Subscription<NegotiationConclusion>::SharedPtr _conclusion_sub;
   rclcpp::Node::SharedPtr _node;
   std::thread _thread;
   NegotiationModel* _nego_model;
-  
 };
 
 } // namespace rviz2_plugin

@@ -41,6 +41,8 @@ SchedulePanel::SchedulePanel(QWidget* parent)
   // Creating publisher
   _param_pub = _node->create_publisher<RvizParamMsg>(
     _param_topic.toStdString(), rclcpp::SystemDefaultsQoS());
+  _cancel_pub = _node->create_publisher<NegotiationCancel>(
+    "/rmf_traffic/negotiation_cancel", rclcpp::SystemDefaultsQoS());
 
   // Create layout for output topic and map_name
   QHBoxLayout* layout1 = new QHBoxLayout;
@@ -82,9 +84,9 @@ SchedulePanel::SchedulePanel(QWidget* parent)
 
   // Create a table for seeing all negotiations
   _negotiation_view = new QTableWidget();
-  _negotiation_view->setColumnCount(4);
+  _negotiation_view->setColumnCount(2);
   QStringList table_header;
-  table_header  << "Negotiation id" << "Participants" << "Status" << "Action";
+  table_header  << "Negotiation id" << "Participants";
   _negotiation_view->setHorizontalHeaderLabels(table_header);
   _negotiation_view->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
   _negotiation_view->setRowCount(10);
@@ -93,7 +95,7 @@ SchedulePanel::SchedulePanel(QWidget* parent)
   _nego_model = new NegotiationModel(_negotiation_view);
   
   _cancel_button = new QPushButton;
-  _cancel_button->setText("cancel");
+  _cancel_button->setText("Cancel Negotiation");
   
   QHBoxLayout* _negotiation_options = new QHBoxLayout;
   _negotiation_options->addStretch();
@@ -122,6 +124,8 @@ SchedulePanel::SchedulePanel(QWidget* parent)
     SIGNAL(editingFinished()), this, SLOT(update_start_duration_max()));
   connect(_start_duration_editor,
     SIGNAL(editingFinished()), this, SLOT(update_start_duration_editor()));
+  connect(_cancel_button, 
+    SIGNAL(clicked()),this, SLOT(cancel_negotiation()));
 
   _notice_sub = _node->create_subscription<NegotiationNotice>(
     "/rmf_traffic/negotiation_notice", rclcpp::SystemDefaultsQoS(),
@@ -130,6 +134,12 @@ SchedulePanel::SchedulePanel(QWidget* parent)
       this->recieved_notification(*msg);
     });
 
+  _conclusion_sub = _node->create_subscription<NegotiationConclusion>(
+    "/rmf_traffic/negotiation_conclusion", rclcpp::SystemDefaultsQoS(),
+    [&](const NegotiationConclusion::UniquePtr msg)
+    {
+      this->recieved_conclusion(*msg);
+    });
   
   // Updating text fields with default
   _topic_editor->setText(_param_topic);
@@ -140,10 +150,33 @@ SchedulePanel::SchedulePanel(QWidget* parent)
   _thread = std::thread([&]() { rclcpp::spin(_node); });
 }
 
-void SchedulePanel::recieved_notification(const rmf_traffic_msgs::msg::NegotiationNotice& msg)
+void SchedulePanel::recieved_notification(const NegotiationNotice& msg)
 {
   _nego_model->add_negotiation(msg.conflict_version, msg.participants);
-  RCLCPP_INFO(_node->get_logger(), "Recievced conflict");
+}
+
+void SchedulePanel::recieved_conclusion(const NegotiationConclusion& msg)
+{
+  _nego_model->remove(msg.conflict_version);
+}
+
+void SchedulePanel::cancel_negotiation()
+{
+  if(!_negotiation_view->selectionModel()->hasSelection())
+  {
+    RCLCPP_WARN(_node->get_logger(), "No selection made");
+    return;
+  }
+
+  std::vector<uint64_t> conflicts;
+  _nego_model->get_selected_id(conflicts);
+  
+  for(auto conflict: conflicts) 
+  {
+    NegotiationCancel cancel_msg;
+    cancel_msg.conflict_version = conflict;
+    _cancel_pub->publish(cancel_msg);
+  }
 }
 
 void SchedulePanel::update_start_duration_max()
