@@ -23,19 +23,23 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QTimer>
+#include <QHeaderView>
 
 namespace rviz2_plugin {
 
+using namespace std::chrono_literals;
+
 SchedulePanel::SchedulePanel(QWidget* parent)
 : rviz_common::Panel(parent),
-  Node("rviz_plugin_node"),
   _param_topic("/rviz_node/param"),
   _map_name("B1"),
   _finish_duration("600"),
   _start_duration_value(0)
 {
+  _node = std::make_shared<rclcpp::Node>("rmf_schedule_panel");
+
   // Creating publisher
-  _param_pub = this->create_publisher<RvizParamMsg>(
+  _param_pub = _node->create_publisher<RvizParamMsg>(
     _param_topic.toStdString(), rclcpp::SystemDefaultsQoS());
 
   // Create layout for output topic and map_name
@@ -76,8 +80,30 @@ SchedulePanel::SchedulePanel(QWidget* parent)
   layout3->addWidget(_start_duration_max_editor);
   layout3->addWidget(new QLabel("(s)"));
 
+  // Create a table for seeing all negotiations
+  _negotiation_view = new QTableWidget();
+  _negotiation_view->setColumnCount(4);
+  QStringList table_header;
+  table_header  << "Negotiation id" << "Participants" << "Status" << "Action";
+  _negotiation_view->setHorizontalHeaderLabels(table_header);
+  _negotiation_view->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+  _negotiation_view->setRowCount(10);
+  _negotiation_view->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+  _nego_model = new NegotiationModel(_negotiation_view);
+  
+  _cancel_button = new QPushButton;
+  _cancel_button->setText("cancel");
+  
+  QHBoxLayout* _negotiation_options = new QHBoxLayout;
+  _negotiation_options->addStretch();
+  _negotiation_options->addWidget(_cancel_button);
+
+  
   // Combine all layouts in vertival layput
   QVBoxLayout* layout = new QVBoxLayout;
+  layout->addWidget(_negotiation_view);
+  layout->addLayout(_negotiation_options);
   layout->addStretch();
   layout->addLayout(layout1);
   layout->addLayout(layout2);
@@ -97,12 +123,27 @@ SchedulePanel::SchedulePanel(QWidget* parent)
   connect(_start_duration_editor,
     SIGNAL(editingFinished()), this, SLOT(update_start_duration_editor()));
 
+  _notice_sub = _node->create_subscription<NegotiationNotice>(
+    "/rmf_traffic/negotiation_notice", rclcpp::SystemDefaultsQoS(),
+    [&](const NegotiationNotice::UniquePtr msg)
+    {
+      this->recieved_notification(*msg);
+    });
+
+  
   // Updating text fields with default
   _topic_editor->setText(_param_topic);
   _map_name_editor->setText(_map_name);
   _finish_duration_editor->setText(_finish_duration);
   _start_duration_editor->setText("0");
   _start_duration_max_editor->setText("600");
+  _thread = std::thread([&]() { rclcpp::spin(_node); });
+}
+
+void SchedulePanel::recieved_notification(const rmf_traffic_msgs::msg::NegotiationNotice& msg)
+{
+  _nego_model->add_negotiation(msg.conflict_version, msg.participants);
+  RCLCPP_INFO(_node->get_logger(), "Recievced conflict");
 }
 
 void SchedulePanel::update_start_duration_max()
@@ -186,7 +227,7 @@ void SchedulePanel::set_topic(const QString& new_topic)
     if (_param_topic != "")
     {
       // Update publisher
-      _param_pub = this->create_publisher<RvizParamMsg>(
+      _param_pub = _node->create_publisher<RvizParamMsg>(
         _param_topic.toStdString(), rclcpp::SystemDefaultsQoS());
       // Send new message
       send_param();

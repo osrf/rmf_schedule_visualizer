@@ -24,14 +24,23 @@
 
 #include <rmf_schedule_visualizer_msgs/msg/rviz_param.hpp>
 
+#include <rmf_traffic_msgs/msg/negotiation_notice.hpp>
+#include <rmf_traffic_msgs/msg/negotiation_conclusion.hpp>
+
+#include <QPushButton>
 #include <QSlider>
 #include <QLineEdit>
+#include <QTableWidget>
+
+#include "NegotiationModel.hpp"
 
 namespace rviz2_plugin {
 
 using  RvizParamMsg = rmf_schedule_visualizer_msgs::msg::RvizParam;
+using  NegotiationNotice = rmf_traffic_msgs::msg::NegotiationNotice;
+using  NegotiationConclusion = rmf_traffic_msgs::msg::NegotiationConclusion;
 
-class SchedulePanel : public rviz_common::Panel, public rclcpp::Node
+class SchedulePanel : public rviz_common::Panel
 {
   Q_OBJECT
 public:
@@ -56,6 +65,11 @@ protected Q_SLOTS:
   void update_start_duration_max();
   void update_start_duration_editor();
 
+private:
+  void recieved_notification(const NegotiationNotice&);
+  void recieved_conclusion(const NegotiationConclusion&);
+  void spin();
+
 protected:
 
   QSlider* _start_duration_slider;
@@ -65,6 +79,7 @@ protected:
   QLineEdit* _finish_duration_editor;
   QLineEdit* _start_duration_editor;
   QLineEdit* _start_duration_max_editor;
+  QPushButton* _cancel_button;
 
   QString _param_topic;
   QString _map_name;
@@ -72,9 +87,17 @@ protected:
   QString _start_duration;
   QString _start_duration_max;
 
-  int _start_duration_value;
+  QTableWidget* _negotiation_view;
+  
 
+  int _start_duration_value;
+private:
   rclcpp::Publisher<RvizParamMsg>::SharedPtr _param_pub;
+  rclcpp::Subscription<NegotiationNotice>::SharedPtr _notice_sub;
+  rclcpp::Node::SharedPtr _node;
+  std::thread _thread;
+  NegotiationModel* _nego_model;
+  
 };
 
 } // namespace rviz2_plugin
