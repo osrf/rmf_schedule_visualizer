@@ -69,7 +69,8 @@ Server::Server(uint16_t port,
     rmf_traffic::schedule::Negotiation::Table::ViewerPtr table_view)
     {
       RCLCPP_DEBUG(_visualizer_data_node->get_logger(),
-        "======== conflict callback version: %llu! ==========",
+        std::string("======== conflict callback "
+        "version: %llu! ==========").c_str(),
         conflict_version);
 
       nlohmann::json negotiation_json;
@@ -98,7 +99,8 @@ Server::Server(uint16_t port,
     uint64_t conflict_version, bool resolved)
     {
       RCLCPP_DEBUG(_visualizer_data_node->get_logger(),
-        "======== conflict concluded: %llu resolved: %d ==========",
+        std::string("======== conflict concluded: "
+        "%llu resolved: %d ==========").c_str(),
         conflict_version, resolved ? 1 : 0);
 
       nlohmann::json json_msg;
@@ -118,7 +120,7 @@ void Server::on_open(connection_hdl hdl)
 {
   _connections.insert(hdl);
   RCLCPP_INFO(_visualizer_data_node->get_logger(),
-    "Connected with a client");
+    std::string("Connected with a client").c_str());
 }
 
 void Server::on_close(connection_hdl hdl)
@@ -126,7 +128,7 @@ void Server::on_close(connection_hdl hdl)
   _connections.erase(hdl);
   _negotiation_subscribed_connections.erase(hdl);
   RCLCPP_INFO(_visualizer_data_node->get_logger(),
-    "Disconnected with a client");
+    std::string("Disconnected with a client").c_str());
 
 }
 
@@ -136,7 +138,8 @@ void Server::on_message(connection_hdl hdl, server::message_ptr msg)
 
   if (msg->get_payload().empty())
   {
-    RCLCPP_INFO(_visualizer_data_node->get_logger(), "Empty request received");
+    RCLCPP_INFO(_visualizer_data_node->get_logger(),
+      std::string("Empty request received").c_str());
     return;
   }
 
@@ -145,7 +148,7 @@ void Server::on_message(connection_hdl hdl, server::message_ptr msg)
   if (ok)
   {
     RCLCPP_DEBUG(_visualizer_data_node->get_logger(),
-      "Response: %s", response.c_str());
+      std::string("Response: %s").c_str(), response.c_str());
     server::message_ptr response_msg = std::move(msg);
     response_msg->set_payload(response);
     _server.send(hdl, response_msg);
@@ -153,7 +156,7 @@ void Server::on_message(connection_hdl hdl, server::message_ptr msg)
   else
   {
     RCLCPP_INFO(_visualizer_data_node->get_logger(),
-      "Invalid request received");
+      std::string("Invalid request received").c_str());
   }
 
 }
@@ -198,7 +201,8 @@ bool Server::parse_request(connection_hdl hdl, server::message_ptr msg,
         duration;
 
       RCLCPP_DEBUG(_visualizer_data_node->get_logger(),
-        "Trajectory Request recived with map_name [%s] and duration [%s]ms",
+        std::string("Trajectory Request recived with map_name "
+        "[%s] and duration [%s]ms").c_str(),
         request_param.map_name.c_str(), std::to_string(duration_num).c_str());
 
       std::lock_guard<std::mutex> lock(_visualizer_data_node->get_mutex());
@@ -237,7 +241,7 @@ bool Server::parse_request(connection_hdl hdl, server::message_ptr msg,
     else if (j["request"] == "negotiation_trajectory")
     {
       RCLCPP_DEBUG(_visualizer_data_node->get_logger(),
-        "Received Negotiation Trajectory request");
+        std::string("Received Negotiation Trajectory request").c_str());
 
       uint64_t conflict_version = j["param"]["conflict_version"];
       std::vector<uint64_t> sequence = j["param"]["sequence"];
@@ -268,7 +272,8 @@ bool Server::parse_request(connection_hdl hdl, server::message_ptr msg,
   catch (const std::exception& e)
   {
     RCLCPP_ERROR(_visualizer_data_node->get_logger(),
-      "Error: %s", std::to_string(*e.what()).c_str());
+      std::string("Error: %s").c_str(),
+      std::to_string(*e.what()).c_str());
     return false;
   }
 
@@ -369,7 +374,8 @@ std::string Server::parse_trajectories(
   catch (const std::exception& e)
   {
     RCLCPP_ERROR(_visualizer_data_node->get_logger(),
-      "Error: %s", std::to_string(*e.what()).c_str());
+      std::string("Error: %s").c_str(),
+      std::to_string(*e.what()).c_str());
     return "";
   }
 

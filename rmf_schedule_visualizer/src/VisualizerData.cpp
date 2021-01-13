@@ -57,8 +57,9 @@ std::shared_ptr<VisualizerDataNode> VisualizerDataNode::make(
 
   RCLCPP_ERROR(
     visualizer_data->get_logger(),
-    "Mirror was not initialized in enough time ["
-    + std::to_string(rmf_traffic::time::to_seconds(wait_time)) + "s]!");
+    std::string("Mirror was not initialized in enough time ["
+    + std::to_string(rmf_traffic::time::to_seconds(wait_time))
+    + "s]!").c_str());
   return nullptr;
 }
 
@@ -116,13 +117,14 @@ void VisualizerDataNode::debug_cb(std_msgs::msg::String::UniquePtr msg)
     // along with details of trajectories in the schedule
     try
     {
-      RCLCPP_INFO(get_logger(), "Mirror Version: [%d]",
+      RCLCPP_INFO(get_logger(), std::string("Mirror Version: [%d]").c_str(),
         data->mirror.viewer().latest_version());
       // Query since database was created
       auto view = data->mirror.viewer().query(
         rmf_traffic::schedule::query_all());
       if (view.size() == 0)
-        RCLCPP_INFO(this->get_logger(), "Schedule is empty");
+        RCLCPP_INFO(this->get_logger(),
+          std::string("Schedule is empty").c_str());
 
       else
       {
@@ -130,7 +132,8 @@ void VisualizerDataNode::debug_cb(std_msgs::msg::String::UniquePtr msg)
         {
           auto t = element.route.trajectory();
           RCLCPP_INFO(
-            get_logger(), "Trajectory id: [%d]\nTrajectory size: [%d]",
+            get_logger(),
+            std::string("Trajectory id: [%d]\nTrajectory size: [%d]").c_str(),
             element.route_id, t.size());
           int count = 0;
           for (auto it = t.begin(); it != t.end(); it++)
@@ -139,7 +142,8 @@ void VisualizerDataNode::debug_cb(std_msgs::msg::String::UniquePtr msg)
             auto finish_time = it->time();
             auto finish_position = it->position();
             RCLCPP_INFO(get_logger(),
-              "waypoint: [%d]\ntime: [%s]\nposiiton:[%d, %d, %d]",
+              std::string("waypoint: [%d]\ntime: i "
+              "[%s]\nposiiton:[%d, %d, %d]").c_str(),
               count,
               std::to_string(finish_time.time_since_epoch().count()).c_str(),
               finish_position[0], finish_position[1], finish_position[2]);
@@ -149,7 +153,7 @@ void VisualizerDataNode::debug_cb(std_msgs::msg::String::UniquePtr msg)
     }
     catch (std::exception& e)
     {
-      RCLCPP_ERROR(this->get_logger(), e.what());
+      RCLCPP_ERROR(this->get_logger(), std::to_string(*e.what()).c_str());
     }
   }
 }
@@ -234,7 +238,8 @@ std::vector<Element> VisualizerDataNode::get_negotiation_trajectories(
   if (!table_view)
   {
     RCLCPP_WARN(
-      this->get_logger(), "table_view for conflict %d not found!",
+      this->get_logger(),
+      std::string("table_view for conflict %d not found!").c_str(),
       conflict_version);
     return trajectory_elements;
   }

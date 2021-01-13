@@ -137,7 +137,8 @@ public:
           _rviz_param.start_duration =
           std::chrono::seconds(msg->start_duration);
         }
-        RCLCPP_INFO(this->get_logger(), "Rviz parameters updated");
+        RCLCPP_INFO(this->get_logger(),
+        std::string("Rviz parameters updated").c_str());
       },
       sub_param_opt);
 
@@ -153,9 +154,9 @@ public:
       [&](BuildingMap::SharedPtr msg)
       {
         std::lock_guard<std::mutex> guard(_visualizer_data_node->get_mutex());
-        RCLCPP_INFO(this->get_logger(), "Received map \""
+        RCLCPP_INFO(this->get_logger(), std::string("Received map \""
         + msg->name + "\" containing "
-        + std::to_string(msg->levels.size()) + " level(s)");
+        + std::to_string(msg->levels.size()) + " level(s)").c_str());
         // Cache building map message
         _map_msg = *msg;
         update_level_cache();
@@ -237,8 +238,8 @@ private:
     if (!marker_array.markers.empty())
     {
       RCLCPP_DEBUG(this->get_logger(),
-        "Publishing marker array of size: " +
-        std::to_string(marker_array.markers.size()));
+        std::string("Publishing marker array of size: " +
+        std::to_string(marker_array.markers.size())).c_str());
       _schedule_markers_pub->publish(marker_array);
     }
   }
@@ -710,7 +711,8 @@ private:
         {
           _has_level = true;
           _level = level;
-          RCLCPP_INFO(this->get_logger(), "Level cache updated");
+          RCLCPP_INFO(this->get_logger(),
+            std::string("Level cache updated").c_str());
           publish_map_markers();
           publish_floorplan();
           break;
@@ -719,7 +721,8 @@ private:
 
       if (!_has_level)
       {
-        RCLCPP_INFO(this->get_logger(), "Level cache not updated");
+        RCLCPP_INFO(this->get_logger(),
+          std::string("Level cache not updated").c_str());
       }
     }
   }
@@ -731,8 +734,8 @@ private:
 
     auto floorplan_img = _level.images[0]; // only use the first img
     RCLCPP_INFO(this->get_logger(),
-      "Loading floorplan Image: " + floorplan_img.name +
-      floorplan_img.encoding);
+      std::string("Loading floorplan Image: " + floorplan_img.name +
+      floorplan_img.encoding).c_str());
     cv::Mat img =
       cv::imdecode(cv::Mat(floorplan_img.data), cv::IMREAD_GRAYSCALE);
 
@@ -855,7 +858,7 @@ int main(int argc, char* argv[])
 
   RCLCPP_INFO(
     visualizer_data_node->get_logger(),
-    "VisualizerDataNode /" + node_name + " started...");
+    std::string("VisualizerDataNode /" + node_name + " started...").c_str());
 
   auto rviz_node = std::make_shared<RvizNode>(
     "rviz_node",
@@ -873,7 +876,7 @@ int main(int argc, char* argv[])
   executor.spin();
   RCLCPP_INFO(
     visualizer_data_node->get_logger(),
-    "Closing down");
+    std::string("Closing down").c_str());
 
   rclcpp::shutdown();
 }
