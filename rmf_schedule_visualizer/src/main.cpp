@@ -85,7 +85,8 @@ int main(int argc, char* argv[])
 
   RCLCPP_INFO(
     visualizer_data_node->get_logger(),
-    "VisualizerDataNode /" + node_name + " started...");
+    std::string("VisualizerDataNode /" + node_name
+    + " started...").c_str());
 
   const auto server_ptr = rmf_schedule_visualizer::Server::make(port,
       visualizer_data_node);
@@ -98,13 +99,14 @@ int main(int argc, char* argv[])
 
   RCLCPP_INFO(
     visualizer_data_node->get_logger(),
-    "Websocket server started on port: " + std::to_string(port));
+    std::string("Websocket server started on port: "
+    + std::to_string(port)).c_str());
 
   rclcpp::spin(visualizer_data_node);
 
   RCLCPP_INFO(
     visualizer_data_node->get_logger(),
-    "Closing down");
+    std::string("Closing down").c_str());
 
   rclcpp::shutdown();
 }
