@@ -53,6 +53,8 @@ target_link_libraries(schedule_visualizer
     Boost::regex
     Boost::random
     ${rmf_traffic_msgs_LIBRARIES}
+  PRIVATE
+    Threads::Threads
 )
 
 target_include_directories(schedule_visualizer
@@ -81,6 +83,8 @@ target_link_libraries(rviz2
     ${rmf_traffic_msgs_LIBRARIES}
     ${rmf_schedule_visualizer_msgs_LIBRARIES}
     ${building_map_msgs_LIBRARIES}
+  PRIVATE
+    Threads::Threads
 )
 
 target_include_directories(rviz2
