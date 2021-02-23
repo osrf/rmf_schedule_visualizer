@@ -176,8 +176,8 @@ void SchedulePanel::cancel_negotiation()
   for (auto conflict : conflicts)
   {
     _cancel_pub->publish(
-          rmf_traffic_msgs::build<NegotiationRefusal>()
-          .conflict_version(conflict));
+      rmf_traffic_msgs::build<NegotiationRefusal>()
+      .conflict_version(conflict));
   }
 }
 
