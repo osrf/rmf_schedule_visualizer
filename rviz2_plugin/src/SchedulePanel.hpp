@@ -24,7 +24,7 @@
 
 #include <rmf_schedule_visualizer_msgs/msg/rviz_param.hpp>
 
-#include <rmf_traffic_msgs/msg/negotiation_cancel.hpp>
+#include <rmf_traffic_msgs/msg/negotiation_refusal.hpp>
 #include <rmf_traffic_msgs/msg/negotiation_conclusion.hpp>
 #include <rmf_traffic_msgs/msg/negotiation_notice.hpp>
 
@@ -41,7 +41,7 @@ namespace rviz2_plugin {
 using  RvizParamMsg = rmf_schedule_visualizer_msgs::msg::RvizParam;
 using  NegotiationNotice = rmf_traffic_msgs::msg::NegotiationNotice;
 using  NegotiationConclusion = rmf_traffic_msgs::msg::NegotiationConclusion;
-using  NegotiationCancel = rmf_traffic_msgs::msg::NegotiationCancel;
+using  NegotiationRefusal = rmf_traffic_msgs::msg::NegotiationRefusal;
 
 class SchedulePanel : public rviz_common::Panel
 {
@@ -96,7 +96,7 @@ protected:
 
 private:
   rclcpp::Publisher<RvizParamMsg>::SharedPtr _param_pub;
-  rclcpp::Publisher<NegotiationCancel>::SharedPtr _cancel_pub;
+  rclcpp::Publisher<NegotiationRefusal>::SharedPtr _cancel_pub;
   rclcpp::Subscription<NegotiationNotice>::SharedPtr _notice_sub;
   rclcpp::Subscription<NegotiationConclusion>::SharedPtr _conclusion_sub;
   rclcpp::Node::SharedPtr _node;

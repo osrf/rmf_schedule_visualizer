@@ -25,6 +25,8 @@
 #include <QTimer>
 #include <QHeaderView>
 
+#include <rmf_traffic_ros2/StandardNames.hpp>
+
 namespace rviz2_plugin {
 
 using namespace std::chrono_literals;
@@ -41,8 +43,8 @@ SchedulePanel::SchedulePanel(QWidget* parent)
   // Creating publisher
   _param_pub = _node->create_publisher<RvizParamMsg>(
     _param_topic.toStdString(), rclcpp::SystemDefaultsQoS());
-  _cancel_pub = _node->create_publisher<NegotiationCancel>(
-    "/rmf_traffic/negotiation_cancel", rclcpp::SystemDefaultsQoS());
+  _cancel_pub = _node->create_publisher<NegotiationRefusal>(
+    rmf_traffic_ros2::NegotiationRefusalTopicName, rclcpp::SystemDefaultsQoS());
 
   // Create layout for output topic and map_name
   QHBoxLayout* layout1 = new QHBoxLayout;
@@ -171,11 +173,11 @@ void SchedulePanel::cancel_negotiation()
   std::vector<uint64_t> conflicts;
   _nego_model->get_selected_id(conflicts);
 
-  for (auto conflict: conflicts)
+  for (auto conflict : conflicts)
   {
-    NegotiationCancel cancel_msg;
-    cancel_msg.conflict_version = conflict;
-    _cancel_pub->publish(cancel_msg);
+    _cancel_pub->publish(
+          rmf_traffic_msgs::build<NegotiationRefusal>()
+          .conflict_version(conflict));
   }
 }
 
