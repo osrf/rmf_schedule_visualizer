@@ -1,7 +1,5 @@
 # rmf_schedule_visualizer
 
-Greetings,
-
 We have migrated the development of the Robotics Middleware Framework (RMF) to a dedicated organization, [open-rmf](https://github.com/open-rmf).
 
 The packages here have been split up into
