@@ -1,6 +1,6 @@
-# rmf_schedule_visualizer
+# :no_entry_sign: rmf_schedule_visualizer :no_entry_sign:
 
-We have migrated the development of the Robotics Middleware Framework (RMF) to a dedicated organization, [open-rmf](https://github.com/open-rmf).
+:warning: We have migrated the development of the Robotics Middleware Framework (RMF) to a dedicated organization, [open-rmf](https://github.com/open-rmf).
 
 The packages here have been split up into
 * [rmf_visualization](https://github.com/open-rmf/rmf_visualization)
